@@ -64,5 +64,5 @@ chat.send_message('CHAR', 'YOUR MESSAGE')
 - So easy to use
 
 ## ⚠️ Disclaimer
-this library is written by a beginner in python, if you have any problems, write to me in [Telegram](t.me/kramcat)
+This library is written by a beginner in python, if you have any problems, write to me in [Telegram](t.me/kramcat)
 
