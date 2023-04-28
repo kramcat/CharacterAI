@@ -1,2 +1,2 @@
 # CharacterAPI
-An unofficial API for character.ai for Python
+An unofficial API for Character AI for Python
