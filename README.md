@@ -31,7 +31,7 @@ client = pyCAI(token)
 
 while True:
     send = input('You: ')
-    print(f'Hawks: {client.chat.send_message(character, send)}')
+    print(f'Character: {client.chat.send_message(character, send)}')
 ```
 
 ## 📚 Functions
