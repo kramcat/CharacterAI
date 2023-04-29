@@ -24,7 +24,7 @@ class pyAsyncCAI:
     async def init(self):
         global page
 
-        self.browser = await (await async_playwright().start()).firefox.launch(headless=False)
+        self.browser = await (await async_playwright().start()).firefox.launch(headless=True)
         self.context = await self.browser.new_context(extra_http_headers={"Authorization": f"Token {self.token}"})
         page = await self.context.new_page()
 
@@ -138,7 +138,7 @@ class pyCAI:
         global page
 
         self.token = token
-        self.browser = sync_playwright().start().firefox.launch(headless=False)
+        self.browser = sync_playwright().start().firefox.launch(headless=True)
         self.context = self.browser.new_context(
             extra_http_headers={"Authorization": f"Token {self.token}"})
         page = self.context.new_page()
