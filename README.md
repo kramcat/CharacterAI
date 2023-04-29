@@ -3,7 +3,7 @@ An unofficial API for Character AI for Python using Playwright
 
 ## 💻 Installation
 ```bash
-pip install CharacterAPI
+pip install characterai
 ```
 
 ## 🔐 Get TOKEN
@@ -22,7 +22,7 @@ This is a character ID, it's very easy to get it
 #### Chatting
 Simple program for chatting with character
 ```Python
-from CharacterAPI import pyCAI
+from characterai import pyCAI
 
 token = 'TOKEN'
 character = 'CHAR'
