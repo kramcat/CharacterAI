@@ -46,7 +46,12 @@ class pyAsyncCAI:
                 return page
 
         else:
-            raise errors.NoResponse('The Site is Overloaded')
+            #print("Fuck you Cloudflare.") # hahaaaaa...
+            await asyncio.sleep(30)
+            #print("Waited 30 seconds, retrying...")
+            site_page = await pyCAI.goto(link)
+            return site_page
+            #raise errors.NoResponse('The Site is Overloaded')
 
     class user:
         """
@@ -165,7 +170,7 @@ class pyCAI:
                 return page
 
         else:
-            #print("Fuck you Cloudflare.") hahaaaaa...
+            #print("Fuck you Cloudflare.") # hahaaaaa...
             time.sleep(30)
             #print("Waited 30 seconds, retrying...")
             site_page = pyCAI.goto(link)
