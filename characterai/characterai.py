@@ -148,14 +148,14 @@ class pyCAI:
         self.chat = self.chat()
 
     # [FOR LIBRARY] Convert site to json
-    def _GetResponse(link: str) -> Dict[str, str]:
+    def GetResponse(link: str) -> Dict[str, str]:
         pyCAI.goto(f'https://beta.character.ai/{link}/')
         data = json.loads(page.locator('pre').inner_text())
 
         return data
 
     # [FOR LIBRARY] Checking the page if it runs for the first time
-    def _goto(link: str):
+    def goto(link: str):
         page.goto(link)
 
         if page.title() != 'Waiting Room powered by Cloudflare':
