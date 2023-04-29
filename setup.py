@@ -4,15 +4,15 @@ with open('README.md') as readme:
     long_description = readme.read()
 
 setup(
-    name='CharacterAPI',
-    version='0.1.0',
+    name='characterai'
+    version='0.2.7',
     author='kramcat',
     description='An unofficial API for character.ai for Python',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/kramcat/CharacterAPI',
-    packages=['CharacterAPI'],
-    install_requires=open('requirements.txt').read().strip().split('\n'),
+    url='https://github.com/kramcat/CharacterAI',
+    packages=['characterai'],
+    install_requires=['playwright==1.32.1'],
     classifiers=[
         'Programming Language :: Python :: 3.9',
         'License :: OSI Approved :: MIT License',
