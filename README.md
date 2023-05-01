@@ -1,5 +1,7 @@
 # 💬 CharacterAI
-[![Downloads](https://static.pepy.tech/badge/characterai)](https://pepy.tech/project/characterai)
+[![Tag](https://img.shields.io/badge/chat-telegram-blue?style=flat&logo=Telegram)](https://t.me/characterapi)
+![Tag](https://img.shields.io/github/license/kramcat/CharacterAI)
+[![Downloads](https://static.pepy.tech/badge/characterai/month)](https://pepy.tech/project/characterai)
 
 An unofficial API for Character AI for Python using Playwright
 
