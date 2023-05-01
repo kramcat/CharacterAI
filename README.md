@@ -17,7 +17,7 @@ For using library, you should get token
 ## 🔐 Get CHAR
 This is a character ID, it's very easy to get it
 1. Open any chat
-2. Copy `char=` value from URL
+2. Copy `char` value from URL
 
 ## 📙 Example
 #### Chatting
