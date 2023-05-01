@@ -1,5 +1,6 @@
 # 💬 CharacterAI
 [![Downloads](https://static.pepy.tech/badge/characterai)](https://pepy.tech/project/characterai)
+
 An unofficial API for Character AI for Python using Playwright
 
 ## 💻 Installation
