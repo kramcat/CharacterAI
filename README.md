@@ -5,6 +5,8 @@
 
 An unofficial API for Character AI for Python using Playwright
 
+If you have any questions or just want to chat about character.ai, go to [Telegram](https://t.me/characterapi) chat
+
 ## 💻 Installation
 ```bash
 pip install characterai
