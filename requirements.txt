@@ -1,1 +1,4 @@
 playwright>=1.32.1
+readthedocs-custom-steps==0.5.1
+jinja2<3.1.0
+pydoc-markdown
