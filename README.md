@@ -27,17 +27,33 @@ This is a character ID, it's very easy to get it
 ## 📙 Example
 #### Chatting
 Simple program for chatting with character
+
+##### Sync
 ```Python
 from characterai import pyCAI
 
-token = 'TOKEN'
-character = 'CHAR'
-
-client = pyCAI(token)
+client = pyCAI('TOKEN')
 
 while True:
-    send = input('You: ')
-    print(f'Character: {client.chat.send_message(character, send)}')
+    message = input('You: ')
+    data = client.chat.send_message('CHAR', message, wait=True)
+    print(f"{data['src_char']['participant']['name']}: {data['replies'][0]['text']}")
+```
+##### Async
+```Python
+import asyncio
+from characterai import pyAsyncCAI
+
+async def main():
+    client = pyAsyncCAI('TOKEN')
+    await client.start(headless=True)
+
+    while True:
+        message = input('You: ')
+        data = await client.chat.send_message('CHAR', message, wait=True)
+        print(f"{data['src_char']['participant']['name']}: {data['replies'][0]['text']}")
+
+asyncio.run(main())
 ```
 
 ## 📚 Functions
