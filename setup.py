@@ -5,7 +5,7 @@ with open('README.md', encoding='utf8') as f:
 
 setup(
     name='characterai',
-    version='0.4.1',
+    version='0.5.0',
     author='kramcat',
     description='An unofficial API for character.ai for Python',
     long_description=long_description,
