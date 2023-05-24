@@ -8,8 +8,6 @@ from characterai import errors
 
 __all__ = ['pyCAI', 'pyAsyncCAI']
 
-page = None
-
 async def goto(link: str, *, wait: bool = False, token: str = None):
     if token != None:
         await page.set_extra_http_headers({"Authorization": f"Token {token}"})
@@ -17,11 +15,7 @@ async def goto(link: str, *, wait: bool = False, token: str = None):
     await page.goto(link)
 
     if await page.title() != 'Waiting Room powered by Cloudflare':
-        if await page.get_by_role("button", name="Accept").is_visible():
-            await page.get_by_role("button", name="Accept").click()
-
-            return page
-
+        return page
     else:
         if wait:
             await page.wait_for_selector('div#wrapper', state='detached', timeout=0)
@@ -35,6 +29,19 @@ async def GetResponse(link: str, *, wait: bool = False, token: str = None) -> Di
 
     return data
 
+async def PostResponse(link: str, post_link: str, data: str, headers: str, *, json: bool = True, wait: bool = False) -> Dict[str, str]:
+    await goto(link, wait=wait)
+
+    async with page.expect_response(post_link) as response_info:
+        # From HearYourWaifu
+        await page.evaluate("const {fetch: origFetch} = window;window.fetch = async (...args) => {const response = await origFetch(...args);const raw_text = await new Response(response.clone().body).text();return response;};")
+        
+        await page.evaluate("fetch('" + post_link + "', {method: 'POST',body: JSON.stringify(" + str(data) + "),headers: new Headers(" + str(headers) + "),})")
+    
+    if json:
+        return await (await response_info.value).json()
+    else:
+        return await (await response_info.value).text()
 
 class pyAsyncCAI:
     def __init__(self, token: str):
@@ -48,9 +55,7 @@ class pyAsyncCAI:
         global page
 
         self.browser = await (await async_playwright().start()).firefox.launch(headless=headless)
-        self.context = await self.browser.new_context(
-            extra_http_headers={"Authorization": f"Token {self.token}"}
-        )
+        self.context = await self.browser.new_context(extra_http_headers={"Authorization": f"Token {self.token}"})
         page = await self.context.new_page()
 
     class user:
@@ -58,9 +63,22 @@ class pyAsyncCAI:
         Just a Responses from site for user info
 
         user.info()
+        user.posts()
+        user.followers()
+        user.following()
+        user.recent()
         """
-        async def info(self, *, wait: bool = False, token: str = None) -> Dict[str, str]:
-            return await GetResponse('chat/user', wait=wait, token=token)
+        async def info(self, username: str = None, *, wait: bool = False, token: str = None) -> Dict[str, str]:
+            if username == None:
+                return await GetResponse('chat/user', wait=wait, token=token)
+            else:
+                return await PostResponse(
+                    link=f'https://beta.character.ai/public-profile/?username={username}',
+                    post_link='https://beta.character.ai/chat/user/public/',
+                    data={'username': username},
+                    headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
+                    wait=wait
+                )
 
         async def posts(self, *, wait: bool = False, token: str = None) -> Dict[str, str]:
             return await GetResponse('chat/posts/user/?scope=user&page=1&posts_to_load=5', wait=wait, token=token)
@@ -79,6 +97,8 @@ class pyAsyncCAI:
         Just a Responses from site for characters
 
         character.trending()
+        character.recommended()
+        character.categories()
         character.info('CHAR')
         character.search('SEARCH')
         """
@@ -92,17 +112,29 @@ class pyAsyncCAI:
             return await GetResponse('chat/character/categories', wait=wait, token=token)
 
         async def info(self, char: str, *, wait: bool = False, token: str = None) -> Dict[str, str]:
-            data = await GetResponse(f'chat/character/info-cached/{char}/', wait=wait, token=token)
-
-            if data != "{'error': 'Server Error (500)'}":
-                return data
-            else:
-                raise errors.CharNotFound('Wrong Char')
+            return await GetResponse(f'chat/character/info-cached/{char}/', wait=wait, token=token)
         
         async def search(self, search, *, wait: bool = False, token: str = None) -> Dict[str, str]:
             return await GetResponse(f'chat/characters/search/?query={search}', wait=wait, token=token)
             
     class chat:
+        async def get_histories(self, char: str, *, wait: bool = False, token: str = None) -> Dict[str, str]:
+            """
+            Getting all character chat histories, return json response
+
+            chat.get_histories('CHAR')
+            """
+            return await PostResponse(
+                link=f'https://beta.character.ai/chat?char={char}',
+                post_link='https://beta.character.ai/chat/character/histories/',
+                data={
+                    "external_id": char,
+                    "number": 50,
+                },
+                headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
+                wait=wait
+            )
+
         async def get_history(self, char: str, *, wait: bool = False, token: str = None) -> Dict[str, str]:
             """
             Getting character chat history, return json response
@@ -120,40 +152,54 @@ class pyAsyncCAI:
             else:
                 raise errors.CharNotFound('Wrong Char')
 
-        async def send_message(self, char: str, message: str, *, wait: bool = False, token: str = None) -> Dict[str, str]:
+        async def send_message(self, char: str, message: str, *, history_external_id: str = None, tgt: str = None, wait: bool = False, token: str = None) -> Dict[str, str]:
             """
             Sending a message, return json
 
             chat.send_message('CHAR', 'MESSAGE')
             """
-            await goto(f'https://beta.character.ai/chat?char={char}', wait=wait, token=token)
-            
-            # BIG THANKS - HearYourWaifu
-            await page.evaluate("""
-            const { fetch: origFetch } = window;
-            window.fetch = async (...args) => {
-            const response = await origFetch(...args);
-            const raw_text = await new Response(response.clone().body).text();
-            return response;};""")
-            
-            async with page.expect_response("https://beta.character.ai/chat/streaming/") as response_info:
-                await page.get_by_placeholder("Type a message").fill(message)
-                await page.get_by_role("button", name="Submit Message").click()
+            # Get history_external_id and tgt
+            if history_external_id == None and tgt == None:
+                info = await PostResponse(
+                    link=f'https://beta.character.ai/chat?char={char}',
+                    post_link='https://beta.character.ai/chat/history/continue/',
+                    data={'character_external_id': char},
+                    headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
+                    wait=wait
+                )
 
-            response = await (await response_info.value).text()
-            return json.loads('{"replies": ' + response.split(r'{"replies": ')[-1])
+                history_external_id = info['external_id']
+                tgt = info['participants'][1]['user']['username']
 
+            response = await PostResponse(
+                link=f'https://beta.character.ai/chat?char={char}',
+                post_link='https://beta.character.ai/chat/streaming/',
+                data={
+                    "history_external_id": history_external_id,
+                    "character_external_id": char,
+                    "text": message,
+                    "tgt": tgt
+                },
+                headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
+                wait=wait,
+                json=False
+            )
+
+            try:
+                return json.loads('{"replies": ' + str(response.split('{"replies": ')[-1].split('\n')[0]))
+            except:
+                return response
+        
         async def new_chat(self, char: str, *, wait: bool = False, token: str = None) -> Dict[str, str]:
             """
-            Starting new chat, return json
+            Starting new chat, return new chat history
 
             chat.new_chat('CHAR')
             """
-            await goto(f'https://beta.character.ai/chat?char={char}', wait=wait, token=token)
-
-            async with page.expect_response("https://beta.character.ai/chat/history/create/") as response_info:
-                await (await page.wait_for_selector('.col-auto.px-2.dropdown')).click()
-                await (await page.wait_for_selector('"Save and Start New Chat"')).click()
-
-            response = await (await response_info.value).text()
-            return json.loads(response)
+            return await PostResponse(
+                link=f'https://beta.character.ai/chat?char={char}',
+                post_link='https://beta.character.ai/chat/history/create/',
+                data={'character_external_id': char},
+                headers={'Authorization': f'Token {token}', 'Content-Type': 'application/json'},
+                wait=wait
+            )
