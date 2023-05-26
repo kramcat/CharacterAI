@@ -29,8 +29,8 @@ async def GetResponse(link: str, *, wait: bool = False, token: str = None) -> Di
 
     return data
 
-async def PostResponse(link: str, post_link: str, data: str, headers: str, *, json: bool = True, wait: bool = False) -> Dict[str, str]:
-    await goto(link, wait=wait)
+async def PostResponse(link: str, post_link: str, data: str, headers: str, *, json: bool = True, wait: bool = False, token: str = None) -> Dict[str, str]:
+    await goto(link, wait=wait, token=token)
 
     async with page.expect_response(post_link) as response_info:
         # From HearYourWaifu
@@ -77,7 +77,8 @@ class pyAsyncCAI:
                     post_link='https://beta.character.ai/chat/user/public/',
                     data={'username': username},
                     headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
-                    wait=wait
+                    wait=wait,
+                    token=token
                 )
 
         async def posts(self, *, wait: bool = False, token: str = None) -> Dict[str, str]:
@@ -132,7 +133,8 @@ class pyAsyncCAI:
                     "number": 50,
                 },
                 headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
-                wait=wait
+                wait=wait,
+                token=token
             )
 
         async def get_history(self, char: str, *, wait: bool = False, token: str = None) -> Dict[str, str]:
@@ -165,11 +167,15 @@ class pyAsyncCAI:
                     post_link='https://beta.character.ai/chat/history/continue/',
                     data={'character_external_id': char},
                     headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
-                    wait=wait
+                    wait=wait,
+                    token=token
                 )
 
-                history_external_id = info['external_id']
-                tgt = info['participants'][1]['user']['username']
+                try:
+                    history_external_id = info['external_id']
+                    tgt = info['participants'][1]['user']['username']
+                except:
+                    return info
 
             response = await PostResponse(
                 link=f'https://beta.character.ai/chat?char={char}',
@@ -182,7 +188,8 @@ class pyAsyncCAI:
                 },
                 headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
                 wait=wait,
-                json=False
+                json=False,
+                token=token
             )
 
             try:
@@ -201,5 +208,6 @@ class pyAsyncCAI:
                 post_link='https://beta.character.ai/chat/history/create/',
                 data={'character_external_id': char},
                 headers={'Authorization': f'Token {token}', 'Content-Type': 'application/json'},
-                wait=wait
+                wait=wait,
+                token=token
             )
