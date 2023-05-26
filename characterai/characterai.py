@@ -30,8 +30,8 @@ def GetResponse(link: str, *, wait: bool = False, token: str = None) -> Dict[str
 
     return data
 
-def PostResponse(link: str, post_link: str, data: str, headers: str, *, json: bool = True, wait: bool = False) -> Dict[str, str]:
-    goto(link, wait=wait)
+def PostResponse(link: str, post_link: str, data: str, headers: str, *, json: bool = True, wait: bool = False, token: str = None) -> Dict[str, str]:
+    goto(link, wait=wait, token=token)
 
     with page.expect_response(post_link) as response_info:
         # From HearYourWaifu
@@ -81,7 +81,8 @@ class pyCAI:
                     post_link='https://beta.character.ai/chat/user/public/',
                     data={'username': username},
                     headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
-                    wait=wait
+                    wait=wait,
+                    token=token
                 )
 
         def posts(self, *, wait: bool = False, token: str = None) -> Dict[str, str]:
@@ -136,7 +137,8 @@ class pyCAI:
                     "number": 50,
                 },
                 headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
-                wait=wait
+                wait=wait,
+                token=token
             )
 
         def get_history(self, char: str, *, wait: bool = False, token: str = None) -> Dict[str, str]:
@@ -169,7 +171,8 @@ class pyCAI:
                     post_link='https://beta.character.ai/chat/history/continue/',
                     data={'character_external_id': char},
                     headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
-                    wait=wait
+                    wait=wait,
+                    token=token
                 )
 
                 history_external_id = info['external_id']
@@ -186,7 +189,8 @@ class pyCAI:
                 },
                 headers={'Authorization': f'Token {token}','Content-Type': 'application/json'},
                 wait=wait,
-                json=False
+                json=False,
+                token=token
             )
 
             try:
@@ -205,5 +209,6 @@ class pyCAI:
                 post_link='https://beta.character.ai/chat/history/create/',
                 data={'character_external_id': char},
                 headers={'Authorization': f'Token {token}', 'Content-Type': 'application/json'},
-                wait=wait
+                wait=wait,
+                token=token
             )
