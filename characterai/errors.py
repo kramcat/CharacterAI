@@ -1,8 +1,17 @@
-class pyCAIError(Exception):
+class PyCAIError(Exception):
     pass
 
-class NoResponse(pyCAIError):
+class ServerError(PyCAIError):
     pass
 
-class CharNotFound(pyCAIError):
+class FilterError(PyCAIError):
+    pass
+
+class NotFoundError(PyCAIError):
+    pass
+
+class LabelError(PyCAIError):
+    pass
+
+class AuthError(PyCAIError):
     pass
