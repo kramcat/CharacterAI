@@ -1,3 +1,3 @@
-from characterai.characterai import pyCAI, pyAsyncCAI
+from characterai.characterai import PyCAI, PyAsyncCAI
 
-__all__ = ['pyCAI', 'pyAsyncCAI']
+__all__ = ['PyCAI', 'PyAsyncCAI']
