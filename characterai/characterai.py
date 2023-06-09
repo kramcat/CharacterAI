@@ -332,7 +332,7 @@ class PyCAI:
             """
             try:
                 return GetResponse(
-                    f'chat/history/msgs/user/?history_external_id={char}',
+                    f'chat/history/msgs/user/?history_external_id={char}&page_num={page}',
                     wait=wait, token=token
                 )
             except:
@@ -347,7 +347,7 @@ class PyCAI:
                 history_id = char_data['external_id']
 
                 return GetResponse(
-                    f'chat/history/msgs/user/?history_external_id={history_id}',
+                    f'chat/history/msgs/user/?history_external_id={history_id}&page_num={page}',
                     wait=wait, token=token
                 )
 
