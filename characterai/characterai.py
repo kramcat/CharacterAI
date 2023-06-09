@@ -322,11 +322,12 @@ class PyCAI:
 
         def get_history(
             self, char: str = None, *,
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None, page: int=1000000
         ):
             """Getting character chat history
 
             chat.get_history('HISTORY_EXTERNAL_ID')
+            Also page works like this: 1000000 -> 999999 -> 999998
             
             """
             try:
