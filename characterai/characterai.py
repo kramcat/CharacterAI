@@ -369,9 +369,9 @@ class PyCAI:
             self, char: str, message: str, *,
             history_external_id: str = None,
             tgt: str = None, wait: bool = False,
-            token: str = None, filtering: bool = True
+            token: str = None, filtering: bool = True, primary_message_uuid: str = None
         ):
-            """Sending a message, return json
+            """Sending a message, return json, also primary_message_uuid is like when you ran the next_message function (because if you don't specify this the original message will be the reply-to message)
 
             chat.send_message('CHAR', 'MESSAGE')
             
@@ -396,20 +396,36 @@ class PyCAI:
                         tgt = info['participants'][0]['user']['username']
                     else:
                         tgt = info['participants'][1]['user']['username']
-
-            response = PostResponse(
-                link=f'chat?char={char}',
-                post_link='chat/streaming/',
-                data={
-                    "history_external_id": history_external_id,
-                    "character_external_id": char,
-                    "text": message,
-                    "tgt": tgt
-                },
-                wait=wait,
-                return_json=False,
-                token=token
-            )
+            if not primary_message_uuid:
+                response = PostResponse(
+                    link=f'chat?char={char}',
+                    post_link='chat/streaming/',
+                    data={
+                        "history_external_id": history_external_id,
+                        "character_external_id": char,
+                        "text": message,
+                        "tgt": tgt
+                    },
+                    wait=wait,
+                    return_json=False,
+                    token=token
+                )
+            else:
+                response = PostResponse(
+                    link=f'chat?char={char}',
+                    post_link='chat/streaming/',
+                    data={
+                        "history_external_id": history_external_id,
+                        "character_external_id": char,
+                        "text": message,
+                        "tgt": tgt,
+                        "primary_msg_uuid": primary_message_uuid,
+                        "seen_msg_uuids": [primary_message_uuid]
+                    },
+                    wait=wait,
+                    return_json=False,
+                    token=token,
+                )
             
             if response.split('\n')[-1].startswith('{"abort"'):
                 if filtering:
