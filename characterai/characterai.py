@@ -33,7 +33,7 @@ def goto(link: str, *, wait: bool = False, token: str = None):
             page.wait_for_selector(
                 'div#wrapper', state='detached', timeout=0
             )
-            goto(link=link, wait=wait)
+            goto(link=link, wait=wait, token=token)
         else:
             raise errors.NoResponse('The Site is Overloaded')
 
@@ -42,13 +42,11 @@ def GetResponse(
         token: str = None
     ):
     goto(link, wait=wait, token=token)
-    data = json.loads(page.locator('body').inner_text())
-
-    return data
+    return json.loads(page.locator('body').inner_text())
 
 def PostResponse(
         link: str, post_link: str, data: str, *,
-        headers: str = None, json: bool = True,
+        headers: str = None, return_json: bool = True,
         wait: bool = False, token: str = None,
         method: str = 'POST'
     ):
@@ -81,7 +79,7 @@ def PostResponse(
     if response.status != 200:
         raise errors.ServerError(response.status_text) 
 
-    if json:
+    if return_json:
         return response.json()
     else:
         return response.text()
@@ -128,17 +126,17 @@ class PyCAI:
                 )
 
         def posts(
-            self, username: str = None, *, 
-            wait: bool = False, token: str = None
+            self, username: str = None, *,
+            wait: bool = False, token: str = None, page_: int=1, posts_to_load:int=5
         ):
             if username == None:
                 return GetResponse(
-                    'chat/posts/user/?scope=user&page=1&posts_to_load=5/',
+                    f'chat/posts/user/?scope=user&page={page_}&posts_to_load={posts_to_load}/',
                     wait=wait, token=token
                 )
             else:
                 return GetResponse(
-                    f'chat/posts/user/?username={username}&page=1&posts_to_load=5/',
+                    f'chat/posts/user/?username={username}&page={page_}&posts_to_load={posts_to_load}/',
                     wait=wait, token=token
                 )
 
@@ -219,7 +217,6 @@ class PyCAI:
         def rate(
             self, char: str, rate: int, *,
             history_external_id: str = None,
-            message_uuid: str = None,
             wait: bool = False, token: str = None
         ):
             """Rate message, return json
@@ -253,7 +250,7 @@ class PyCAI:
                     "history_external_id": history_external_id,
                     "label_ids": label
                 },
-                wait=wait, json=False, token=token, method='PUT'
+                wait=wait, return_json=False, token=token, method='PUT'
             )
 
             return response
@@ -292,7 +289,7 @@ class PyCAI:
                     "tgt": history['messages'][-1]['src__user__username'],
                     "parent_msg_uuid": last_message['uuid']
                 },
-                wait=wait, json=False, token=token
+                wait=wait, return_json=False, token=token
             )
 
             if response.split('\n')[-1].startswith('{"abort"'):
@@ -305,7 +302,7 @@ class PyCAI:
 
         def get_histories(
             self, char: str, *,
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None, number:int=50
         ):
             """Getting all character chat histories
 
@@ -315,14 +312,14 @@ class PyCAI:
             return PostResponse(
                 link=f'chat?char={char}',
                 post_link='chat/character/histories/',
-                data={"external_id": char, "number": 50},
+                data={"external_id": char, "number": number},
                 wait=wait,
                 token=token
             )
 
         def get_history(
             self, char: str = None, *,
-            wait: bool = False, token: str = None, page: int=1000000
+            wait: bool = False, token: str = None, page_: int=1000000
         ):
             """Getting character chat history
 
@@ -332,10 +329,10 @@ class PyCAI:
             """
             try:
                 return GetResponse(
-                    f'chat/history/msgs/user/?history_external_id={char}&page_num={page}',
+                    f'chat/history/msgs/user/?history_external_id={char}&page_num={page_}',
                     wait=wait, token=token
                 )
-            except:
+            except Exception:
                 char_data = PostResponse(
                     link=f'chat?char={char}',
                     post_link='chat/history/continue/',
@@ -347,7 +344,7 @@ class PyCAI:
                 history_id = char_data['external_id']
 
                 return GetResponse(
-                    f'chat/history/msgs/user/?history_external_id={history_id}&page_num={page}',
+                    f'chat/history/msgs/user/?history_external_id={history_id}&page_num={page_}',
                     wait=wait, token=token
                 )
 
@@ -410,7 +407,7 @@ class PyCAI:
                     "tgt": tgt
                 },
                 wait=wait,
-                json=False,
+                return_json=False,
                 token=token
             )
             

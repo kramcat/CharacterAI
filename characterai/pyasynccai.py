@@ -1,4 +1,3 @@
-import asyncio
 import json
 
 from playwright.async_api import async_playwright
@@ -33,7 +32,7 @@ async def goto(link: str, *, wait: bool = False, token: str = None):
             await page.wait_for_selector(
                 'div#wrapper', state='detached', timeout=0
             )
-            await goto(link=link, wait=wait)
+            await goto(link=link, wait=wait, token=token)
         else:
             raise errors.NoResponse('The Site is Overloaded')
 
@@ -42,13 +41,11 @@ async def GetResponse(
         token: str = None
     ):
     await goto(link, wait=wait, token=token)
-    data = json.loads(await (page.locator('body').inner_text()))
-
-    return data
+    return json.loads(await (page.locator('body').inner_text()))
 
 async def PostResponse(
         link: str, post_link: str, data: str, *,
-        headers: str = None, json: bool = True,
+        headers: str = None, return_json: bool = True,
         wait: bool = False, token: str = None,
         method: str = 'POST'
     ):
@@ -81,7 +78,7 @@ async def PostResponse(
     if response.status != 200:
         raise errors.ServerError(response.status_text) 
 
-    if json:
+    if return_json:
         return await response.json()
     else:
         return await response.text()
@@ -130,16 +127,16 @@ class PyAsyncCAI:
 
         async def posts(
             self, username: str = None, *, 
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None, page_:int=1,posts_to_load:int=5
         ):
             if username == None:
                 return await GetResponse(
-                    'chat/posts/user/?scope=user&page=1&posts_to_load=5/',
+                    f'chat/posts/user/?scope=user&page={page_}&{posts_to_load}=5/',
                     wait=wait, token=token
                 )
             else:
                 return await GetResponse(
-                    f'chat/posts/user/?username={username}&page=1&posts_to_load=5/',
+                    f'chat/posts/user/?username={username}&page={page_}&{posts_to_load}=5/',
                     wait=wait, token=token
                 )
 
@@ -219,7 +216,6 @@ class PyAsyncCAI:
     class chat:
         async def rate(
             self, char: str, rate: int, *,
-            message_uuid: str = None,
             wait: bool = False, token: str = None
         ):
             """Rate message, return json
@@ -253,7 +249,7 @@ class PyAsyncCAI:
                     "history_external_id": history_external_id,
                     "label_ids": label
                 },
-                wait=wait, json=False, token=token, method='PUT'
+                wait=wait, return_json=False, token=token, method='PUT'
             )
 
             return response
@@ -294,7 +290,7 @@ class PyAsyncCAI:
                     "tgt": history['messages'][-1]['src__user__username'],
                     "parent_msg_uuid": last_message['uuid']
                 },
-                wait=wait, json=False, token=token
+                wait=wait, return_json=False, token=token
             )
 
             if response.split('\n')[-1].startswith('{"abort"'):
@@ -307,7 +303,7 @@ class PyAsyncCAI:
 
         async def get_histories(
             self, char: str, *,
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None, number:int=50
         ):
             """Getting all character chat histories
 
@@ -317,14 +313,14 @@ class PyAsyncCAI:
             return await PostResponse(
                 link=f'chat?char={char}',
                 post_link='chat/character/histories/',
-                data={"external_id": char, "number": 50},
+                data={"external_id": char, "number": number},
                 wait=wait,
                 token=token
             )
 
         async def get_history(
             self, char: str = None, *,
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None, page_: int=1000000
         ):
             """Getting character chat history
 
@@ -333,10 +329,10 @@ class PyAsyncCAI:
             """
             try:
                 return await GetResponse(
-                    f'chat/history/msgs/user/?history_external_id={char}',
+                    f'chat/history/msgs/user/?history_external_id={char}&page_num={page_}',
                     wait=wait, token=token
                 )
-            except:
+            except Exception:
                 char_data = await PostResponse(
                     link=f'chat?char={char}',
                     post_link='chat/history/continue/',
@@ -348,7 +344,7 @@ class PyAsyncCAI:
                 history_id = char_data['external_id']
 
                 return await GetResponse(
-                    f'chat/history/msgs/user/?history_external_id={history_id}',
+                    f'chat/history/msgs/user/?history_external_id={history_id}&page_num={page_}',
                     wait=wait, token=token
                 )
 
@@ -412,7 +408,7 @@ class PyAsyncCAI:
                     "tgt": tgt
                 },
                 wait=wait,
-                json=False,
+                return_json=False,
                 token=token
             )
             
