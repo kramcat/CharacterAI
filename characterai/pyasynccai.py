@@ -332,7 +332,7 @@ class PyAsyncCAI:
                     f'chat/history/msgs/user/?history_external_id={char}&page_num={page_}',
                     wait=wait, token=token
                 )
-            except Exception:
+            except errors.PyCAIError:
                 char_data = await PostResponse(
                     link=f'chat?char={char}',
                     post_link='chat/history/continue/',
