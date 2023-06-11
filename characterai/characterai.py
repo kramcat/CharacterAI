@@ -7,13 +7,14 @@ from characterai.pyasynccai import PyAsyncCAI
 
 __all__ = ['PyCAI', 'PyAsyncCAI']
 
-def goto(link: str, *, wait: bool = False, token: str = None):
+def goto(link: str, *, wait: bool = False, token: str = None, plus: bool=False):
     if token != None:
         page.set_extra_http_headers(
             {"Authorization": f"Token {token}"}
         )
 
-    page.goto(f'https://beta.character.ai/{link}')
+    if not plus: page.goto(f'https://beta.character.ai/{link}')
+    else: page.goto(f'https://plus.character.ai/{link}')
 
     content = (page.locator('body').inner_text())
 
@@ -33,26 +34,27 @@ def goto(link: str, *, wait: bool = False, token: str = None):
             page.wait_for_selector(
                 'div#wrapper', state='detached', timeout=0
             )
-            goto(link=link, wait=wait, token=token)
+            goto(link=link, wait=wait, token=token, plus=plus)
         else:
             raise errors.NoResponse('The Site is Overloaded')
 
 def GetResponse(
         link: str, *, wait: bool = False,
-        token: str = None
+        token: str = None, plus: bool=False
     ):
-    goto(link, wait=wait, token=token)
+    goto(link, wait=wait, token=token, plus=plus)
     return json.loads(page.locator('body').inner_text())
 
 def PostResponse(
         link: str, post_link: str, data: str, *,
         headers: str = None, return_json: bool = True,
         wait: bool = False, token: str = None,
-        method: str = 'POST'
+        method: str = 'POST', plus: bool=False
     ):
-    post_link = f'https://beta.character.ai/{post_link}'
+    if not plus: post_link = f'https://beta.character.ai/{post_link}'
+    else: post_link = f'https://plus.character.ai/{post_link}'
 
-    goto(link, wait=wait, token=token)
+    goto(link, wait=wait, token=token, plus=plus)
 
     if headers == None:
         headers = {
@@ -97,6 +99,7 @@ class PyCAI:
         )
         page = self.context.new_page()
 
+
         self.user = self.user()
         self.character = self.character()
         self.chat = self.chat()
@@ -113,10 +116,10 @@ class PyCAI:
         """
         def info(
             self, username: str = None, *,
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None, plus:bool=False
         ):
             if username == None:
-                return GetResponse('chat/user/', wait=wait, token=token)
+                return GetResponse('chat/user/', wait=wait, token=token, plus=plus)
             else:
                 return PostResponse(
                     link=f'public-profile/?username={username}',
@@ -127,35 +130,35 @@ class PyCAI:
 
         def posts(
             self, username: str = None, *,
-            wait: bool = False, token: str = None, page_: int=1, posts_to_load:int=5
+            wait: bool = False, token: str = None, page_: int=1, posts_to_load:int=5, plus:bool=False
         ):
             if username == None:
                 return GetResponse(
                     f'chat/posts/user/?scope=user&page={page_}&posts_to_load={posts_to_load}/',
-                    wait=wait, token=token
+                    wait=wait, token=token, plus=plus
                 )
             else:
                 return GetResponse(
                     f'chat/posts/user/?username={username}&page={page_}&posts_to_load={posts_to_load}/',
-                    wait=wait, token=token
+                    wait=wait, token=token, plus=plus
                 )
 
-        def followers(self, *, wait: bool = False, token: str = None):
+        def followers(self, *, wait: bool = False, token: str = None, plus:bool=False):
             return GetResponse(
                 'chat/user/followers/',
-                wait=wait, token=token
+                wait=wait, token=token, plus=plus
             )
 
-        def following(self, *, wait: bool = False, token: str = None):
+        def following(self, *, wait: bool = False, token: str = None, plus:bool=False):
             return GetResponse(
                 'chat/user/following/',
-                wait=wait, token=token
+                wait=wait, token=token, plus=plus
             )
         
-        def recent(self, *, wait: bool = False, token: str = None):
+        def recent(self, *, wait: bool = False, token: str = None, plus:bool=False):
             return GetResponse(
                 'chat/characters/recent/',
-                wait=wait, token=token
+                wait=wait, token=token, plus=plus
             )
 
     class character:
@@ -170,66 +173,68 @@ class PyCAI:
         """
         def trending(
             self, *, wait: bool = False,
-            token: str = None
+            token: str = None, plus:bool=False
         ):
             return GetResponse(
                 'chat/characters/trending/', 
-                wait=wait, token=token
+                wait=wait, token=token, plus=plus
             )
 
         def recommended(
             self, *, wait: bool = False,
-            token: str = None
+            token: str = None, plus:bool=False
         ):
             return GetResponse(
                 'chat/characters/recommended/', 
-                wait=wait, token=token
+                wait=wait, token=token, plus=plus
             )
 
         def categories(
             self, *, wait: bool = False,
-            token: str = None
+            token: str = None, plus:bool=False
         ):
             return GetResponse(
                 'chat/character/categories/', 
-                wait=wait, token=token
+                wait=wait, token=token, plus=plus
             )
 
         def info(
             self, char: str, *, 
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None, plus:bool=False
         ):
             return GetResponse(
                 f'chat/character/info-cached/{char}/', 
-                wait=wait, token=token
+                wait=wait, token=token, plus=plus
             )
 
         def search(
             self, query: str, *,
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None, plus:bool=False
         ):
             return GetResponse(
                 f'chat/characters/search/?query={query}/', 
-                wait=wait, token=token
+                wait=wait, token=token, plus=plus
             )
 
     class chat:
         def rate(
             self, char: str, rate: int, *,
             history_external_id: str = None,
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None, plus: bool=False
         ):
             """Rate message, return json
 
             chat.rate('CHAR', NUM)
             
             """
+            if not plus: url = 'https://beta.character.ai/chat/history/msgs/user/'
+            else: url = 'https://plus.character.ai/chat/history/msgs/user/'
             with page.expect_response(
                 lambda response: response.url.startswith(
-                    'https://beta.character.ai/chat/history/msgs/user/'
+                    url
                 )
             ) as response_info:
-                goto(f'chat?char={char}', wait=wait, token=token)
+                goto(f'chat?char={char}', wait=wait, token=token, plus=plus)
 
             if rate == 0: label = [234, 238, 241, 244] #Terrible
             elif rate == 1: label = [235, 237, 241, 244] #Bad
@@ -257,19 +262,21 @@ class PyCAI:
 
         def next_message(
             self, char: str, *, wait: bool = False,
-            token: str = None, filtering: bool = True
+            token: str = None, filtering: bool = True, plus: bool=False
         ):
             """Next message, return json
 
             chat.next_message('CHAR', 'MESSAGE')
             
             """
+            if not plus: url = 'https://beta.character.ai/chat/history/msgs/user/'
+            else: url = 'https://plus.character.ai/chat/history/msgs/user/'
             with page.expect_response(
                 lambda response: response.url.startswith(
-                    'https://beta.character.ai/chat/history/msgs/user/'
+                    url
                 )
             ) as response_info:
-                goto(f'chat?char={char}', wait=wait, token=token)
+                goto(f'chat?char={char}', wait=wait, token=token, plus=plus)
             
             history = response_info.value.json()
             url = response_info.value.url
@@ -319,7 +326,7 @@ class PyCAI:
 
         def get_history(
             self, char: str = None, *,
-            wait: bool = False, token: str = None, page_: int=1000000
+            wait: bool = False, token: str = None, page_: int=1000000, plus:bool=False
         ):
             """Getting character chat history
 
@@ -330,7 +337,7 @@ class PyCAI:
             try:
                 return GetResponse(
                     f'chat/history/msgs/user/?history_external_id={char}&page_num={page_}',
-                    wait=wait, token=token
+                    wait=wait, token=token, plus=plus
                 )
             except errors.PyCAIError:
                 char_data = PostResponse(
@@ -338,14 +345,14 @@ class PyCAI:
                     post_link='chat/history/continue/',
                     data={"character_external_id": char},
                     wait=wait,
-                    token=token
+                    token=token, plus=plus
                 )
 
                 history_id = char_data['external_id']
 
                 return GetResponse(
                     f'chat/history/msgs/user/?history_external_id={history_id}&page_num={page_}',
-                    wait=wait, token=token
+                    wait=wait, token=token, plus=plus
                 )
 
         def get_chat(
