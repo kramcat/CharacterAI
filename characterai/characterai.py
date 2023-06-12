@@ -36,7 +36,7 @@ def goto(link: str, *, wait: bool = False, token: str = None, plus: bool=False):
             )
             goto(link=link, wait=wait, token=token, plus=plus)
         else:
-            raise errors.NoResponse('The Site is Overloaded')
+            raise errors.WaitingRoom
 
 def GetResponse(
         link: str, *, wait: bool = False,
@@ -78,7 +78,11 @@ def PostResponse(
 
     response = response_info.value
 
+    if not response.headers.get("Refresh") is None: #if its in waiting room it will send the refresh header with the value 20, i dunno if it can change
+        raise errors.WaitingRoom
+
     if response.status != 200:
+        if response.text() == "there is no history between user and character": return response.text() #this will return a 404, it's with the chat/history/continue/ endpoint
         raise errors.ServerError(response.status_text) 
 
     if return_json:

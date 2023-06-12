@@ -75,10 +75,11 @@ async def PostResponse(
 
     response = await response_info.value
 
-    if not response.headers.get("Refresh") is None:
+    if not response.headers.get("Refresh") is None: #if its in waiting room it will send the refresh header with the value 20, i dunno if it can change
         raise errors.WaitingRoom
 
     if response.status != 200:
+        if await response.text() == "there is no history between user and character": return await response.text() #this will return a 404, it's with the chat/history/continue/ endpoint
         raise errors.ServerError(response.status_text) 
 
     if return_json:
