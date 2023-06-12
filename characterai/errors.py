@@ -16,5 +16,5 @@ class LabelError(PyCAIError):
 class AuthError(PyCAIError):
     pass
 
-class NoResponse(PyCAIError):
+class WaitingRoom(PyCAIError):
     pass

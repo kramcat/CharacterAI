@@ -34,7 +34,7 @@ async def goto(link: str, *, wait: bool = False, token: str = None):
             )
             await goto(link=link, wait=wait, token=token)
         else:
-            raise errors.NoResponse('The Site is Overloaded')
+            raise errors.WaitingRoom()
 
 async def GetResponse(
         link: str, *, wait: bool = False,
@@ -74,6 +74,9 @@ async def PostResponse(
         )
 
     response = await response_info.value
+
+    if not response.headers.get("Refresh") is None:
+        raise errors.WaitingRoom
 
     if response.status != 200:
         raise errors.ServerError(response.status_text) 
