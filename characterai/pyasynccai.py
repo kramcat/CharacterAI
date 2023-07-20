@@ -382,7 +382,6 @@ class PyAsyncCAI:
             """
             # Get history_external_id and tgt
             if history_external_id == None or tgt == None:
-                print('none')
                 info = await PostResponse(
                     link=f'chat?char={char}',
                     post_link='chat/history/continue/',
