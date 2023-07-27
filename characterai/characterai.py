@@ -35,7 +35,7 @@ def goto(link: str, *, wait: bool = False, token: str = None):
             )
             goto(link=link, wait=wait)
         else:
-            raise errors.NoResponse('The Site is Overloaded')
+            raise errors.NoResponseError('The Site is Overloaded')
 
 def GetResponse(
         link: str, *, wait: bool = False,
