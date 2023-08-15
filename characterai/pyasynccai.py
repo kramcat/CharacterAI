@@ -1,21 +1,27 @@
 import asyncio
 import json
 
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, \
+    TimeoutError as PlaywrightTimeoutError
 
 from characterai import errors
 
+_page = None
+
 __all__ = ['PyCAI', 'PyAsyncCAI']
 
-async def goto(link: str, *, wait: bool = False, token: str = None):
+async def _goto(link: str, *, wait: bool = False, token: str = None):
     if token != None:
-        await page.set_extra_http_headers(
+        await _page.set_extra_http_headers(
             {"Authorization": f"Token {token}"}
         )
 
-    await page.goto(f'https://beta.character.ai/{link}')
+    try:
+        await _page.goto(link)
+    except Exception as E:
+        raise errors.UnknownError(E)
 
-    content = await (page.locator('body').inner_text())
+    content = await (_page.locator('body').inner_text())
 
     if content.startswith('Not Found'):
         raise errors.NotFoundError(content.split('\n')[-1])
@@ -26,53 +32,44 @@ async def goto(link: str, *, wait: bool = False, token: str = None):
     elif content.startswith('{"detail":'):
         raise errors.AuthError(json.loads(content)['detail']) 
 
-    if await page.title() != 'Waiting Room powered by Cloudflare':
-        return page
+    if await _page.title() != 'Waiting Room powered by Cloudflare':
+        return _page
     else:
         if wait:
-            await page.wait_for_selector(
+            await _page.wait_for_selector(
                 'div#wrapper', state='detached', timeout=0
             )
-            await goto(link=link, wait=wait)
+            await _goto(link=link, wait=wait, token=token)
         else:
             raise errors.NoResponse('The Site is Overloaded')
 
-async def GetResponse(
+async def _GetResponse(
         link: str, *, wait: bool = False,
         token: str = None
     ):
-    await goto(link, wait=wait, token=token)
-    data = json.loads(await (page.locator('body').inner_text()))
+    await _goto(link, wait=wait, token=token)
+    return json.loads(await (_page.locator('body').inner_text()))
 
-    return data
-
-async def PostResponse(
-        link: str, post_link: str, data: str, *,
-        headers: str = None, json: bool = True,
-        wait: bool = False, token: str = None,
-        method: str = 'POST'
+async def _PostResponse(
+        post_link: str, data: str, *,
+        send_json: bool = True, method: str = 'POST',
+        wait: bool = False, token: str = None
     ):
-    post_link = f'https://beta.character.ai/{post_link}'
+    await _goto('', wait=wait, token=token)
 
-    await goto(link, wait=wait, token=token)
+    headers = {
+        'Authorization': f'Token {token}',
+        'Content-Type': 'application/json'
+    }
 
-    if headers == None:
-        headers = {
-            'Authorization': f'Token {token}',
-            'Content-Type': 'application/json'
-        }
-
-    async with page.expect_response(post_link) as response_info:
-        await page.evaluate(
-            """const {fetch: origFetch} = window;
-            window.fetch = async (...args) => {
-            const response = await origFetch(...args);
-            const raw_text = await new Response(response.clone().body).text();
-            return response;};"""
-            + "fetch('"
+    data = json.dumps(data)
+    
+    async with _page.expect_response(post_link) as response_info:
+        await _page.evaluate(
+            "fetch('"
             + post_link + "', {method: '"
             + method + "',body: JSON.stringify("
-            + str(data) + "),headers: new Headers("
+            + data + "),headers: new Headers("
             + str(headers) + "),})"
         )
 
@@ -81,382 +78,542 @@ async def PostResponse(
     if response.status != 200:
         raise errors.ServerError(response.status_text) 
 
-    if json:
-        return await response.json()
-    else:
-        return await response.text()
+    if send_json: return await response.json()
+    else: return await response.text()
 
 class PyAsyncCAI:
     def __init__(self, token: str = None):
         self.token = token
 
         self.user = self.user()
+        self.post = self.post()
         self.character = self.character()
         self.chat = self.chat()
 
-    async def start(self, *, headless: bool = True):
-        global page
+    async def start(
+        self, *, headless: bool = True,
+        plus: bool = False, timeout: int = 0
+    ):
+        global _page
+
+        if plus: url = 'https://plus.character.ai'
+        else: url = 'https://beta.character.ai'
 
         self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.firefox.launch(headless=headless)
+        self.browser = await self.playwright.firefox.launch(
+            headless=headless)
         self.context = await self.browser.new_context(
-            extra_http_headers={"Authorization": f"Token {self.token}"}
+            extra_http_headers={"Authorization": f"Token {self.token}"},
+            base_url=url
         )
-        page = await self.context.new_page()
+        _page = await self.context.new_page()
+        _page.set_default_timeout(timeout)
+
+    async def ping(self):
+        await _page.goto('https://neo.character.ai/ping/')
+        return json.loads(await (_page.locator('body').inner_text()))
+
+    async def upload_image(
+        self, path, *, wait: bool = False
+    ):
+        await _page.goto('chat')
+
+        close1 = _page.locator('//*[@id="mobile-app-modal-close"]')
+        close2 = _page.locator('//*[@id="#AcceptButton"]')
+
+        if await close1.is_visible(): await close1.click()
+        if await close2.is_visible(): await close2.click()
+
+        await _page.click("div.col-auto.ps-2.dropdown.dropup")
+        await _page.get_by_text("🖼").click()
+
+        async with _page.expect_response(
+            'chat/upload-image/'
+        ) as response_info:
+            async with _page.expect_file_chooser() as file_info:
+                await _page.click("[name='img']")
+
+            file_chooser = await file_info.value
+            await file_chooser.set_files(path)
+
+        response = await response_info.value
+        return await response.json()
 
     class user:
-        """Just a Responses from site for user info
+        """Just a responses from site for user info
 
         user.info()
-        user.posts()
+        user.get_profile('USERNAME')
         user.followers()
         user.following()
-        user.recent()
-        
+        user.update('USERNAME')
+
         """
         async def info(
-            self, username: str = None, *,
-            wait: bool = False, token: str = None
+            self, *, wait: bool = False, token: str = None
         ):
-            if username == None:
-                return await GetResponse('chat/user/', wait=wait, token=token)
-            else:
-                return await PostResponse(
-                    link=f'public-profile/?username={username}',
-                    post_link='chat/user/public/',
-                    data={'username': username},
-                    wait=wait, token=token
-                )
+            return await _GetResponse('chat/user/', wait=wait, token=token)
 
-        async def posts(
-            self, username: str = None, *, 
-            wait: bool = False, token: str = None
+        async def get_profile(
+            self, username: str, *,
+            wait: bool = False
         ):
-            if username == None:
-                return await GetResponse(
-                    'chat/posts/user/?scope=user&page=1&posts_to_load=5/',
-                    wait=wait, token=token
-                )
-            else:
-                return await GetResponse(
-                    f'chat/posts/user/?username={username}&page=1&posts_to_load=5/',
-                    wait=wait, token=token
-                )
+            return await _PostResponse(
+                post_link='chat/user/public/',
+                data={'username': username},
+                wait=wait
+            )
 
         async def followers(self, *, wait: bool = False, token: str = None):
-            return await GetResponse(
-                'chat/user/followers/',
-                wait=wait, token=token
+            return await _GetResponse(
+                'chat/user/followers/', wait=wait, token=token
             )
 
         async def following(self, *, wait: bool = False, token: str = None):
-            return await GetResponse(
+            return await _GetResponse(
                 'chat/user/following/',
                 wait=wait, token=token
             )
         
         async def recent(self, *, wait: bool = False, token: str = None):
-            return await GetResponse(
+            return await _GetResponse(
                 'chat/characters/recent/',
                 wait=wait, token=token
             )
 
-    class character:
-        """Just a Responses from site for characters
+        async def update(
+            self, username: str, *,
+            wait: bool = False, token: str = None,
+            **kwargs
+        ):
+            return await _PostResponse(
+                post_link='chat/user/update/',
+                data={
+                    'username': username,
+                    **kwargs
+                },
+                wait=wait, token=token
+            )
+    
+    class post:
+        """Just a responses from site for posts        
+        
+        post.get_post('POST_ID')
+        post.my_posts()
+        post.get_posts('USERNAME')
+        post.upvote('POST_ID')
+        post.undo_upvote('POST_ID')
+        post.send_comment('POST_ID', 'TEXT')
+        post.delete_comment('MESSAGE_ID', 'POST_ID')
+        post.create('HISTORY_ID', 'TITLE')
+        post.delete('POST_ID')
 
+        """
+        async def get_post(
+            self, post_id: str, *,
+            wait: bool = False
+        ):
+            return await _GetResponse(
+                f'chat/post/?post={post_id}',
+                wait=wait
+            )
+        
+        async def my_posts(
+            self, *, posts_page: int = 1,
+            posts_to_load: int = 5, wait: bool = False,
+            token: str = None
+        ):
+            return await _GetResponse(
+                f'chat/posts/user/?scope=user&page={posts_page}'
+                f'&posts_to_load={posts_to_load}/',
+                wait=wait, token=token
+            )
+
+        async def get_posts(
+            self, username: str, *,
+            posts_page: int = 1, posts_to_load: int = 5,
+            wait: bool = False
+        ):
+            return await _GetResponse(
+                f'chat/posts/user/?username={username}'
+                f'&page={posts_page}&posts_to_load={posts_to_load}/',
+                wait=wait
+            )
+
+        async def upvote(
+            self, post_external_id: str, *,
+            wait: bool = False, token: str = None
+        ):
+            return await _PostResponse(
+                post_link='chat/post/upvote/',
+                data={
+                    'post_external_id': post_external_id
+                },
+                wait=wait, token=token
+            )
+
+        async def undo_upvote(
+            self, post_external_id: str, *,
+            wait: bool = False, token: str = None
+        ):
+            return await _PostResponse(
+                post_link='chat/post/undo-upvote/',
+                data={
+                    'post_external_id': post_external_id
+                },
+                wait=wait, token=token
+            )
+
+        async def send_comment(
+            self, post_id: str, text: str, *,
+            parent_uuid: str = None, wait: bool = False,
+            token: str = None
+        ):
+            return await _PostResponse(
+                post_link='chat/comment/create/',
+                data={
+                    'post_external_id': post_id,
+                    'text': text,
+                    'parent_uuid': parent_uuid
+                },
+                wait=wait, token=token
+            )
+
+        async def delete_comment(
+            self, message_id: int, post_id: str, *,
+            wait: bool = False, token: str = None
+        ):
+            return await _PostResponse(
+                post_link='chat/comment/delete/',
+                data={
+                    'external_id': message_id,
+                    'post_external_id': post_id
+                },
+                wait=wait, token=token
+            )
+
+        async def create(
+            self, post_type: str, external_id: str,
+            title: str, text: str = '', wait: bool = False,
+            post_visibility: str = 'PUBLIC',
+            token: str = None, **kwargs
+        ):
+            if post_type == 'POST':
+                post_link = 'chat/post/create/'
+                data = {
+                    'post_title': title,
+                    'topic_external_id': external_id,
+                    'post_text': text,
+                    **kwargs
+                }
+            elif post_type == 'CHAT':
+                post_link = 'chat/chat-post/create/'
+                data = {
+                    'post_title': title,
+                    'subject_external_id': external_id,
+                    'post_visibility': post_visibility,
+                    **kwargs
+                }
+            else:
+                raise errors.PostTypeError('Wrong post_type')
+
+            return await _PostResponse(
+                post_link=post_link,
+                data=data, wait=wait, token=token
+            )
+
+        async def delete(
+            self, post_id: str, *,
+            wait: bool = False, token: str = None
+        ):
+            return await _PostResponse(
+                post_link='chat/post/delete/',
+                data={'external_id': post_id},
+                wait=wait, token=token
+            )
+
+        async def get_topics(
+            self, *, wait: bool = False
+        ):
+            return await _GetResponse(
+                'chat/topics/',
+                wait=wait, token=token
+            )
+
+        async def feed(
+            self, topic: str, num_page: int = 1, 
+            posts_to_load: int = 5, sort: str = 'top', *,
+            wait: bool = False, token: str = None
+        ):
+            return await _GetResponse(
+                f'posts/?topic={topic}&page={num_page}'
+                f'&posts_to_load={posts_to_load}&sort={sort}',
+                wait=wait, token=token
+            )
+
+    class character:
+        """Just a responses from site for characters
+
+        character.create()
+        character.update()
         character.trending()
         character.recommended()
         character.categories()
         character.info('CHAR')
-        character.search('SEARCH')
-        
+        character.search('QUERY')
+        character.voices()
+
         """
-        async def trending(
-            self, *, wait: bool = False,
-            token: str = None
+        async def create(
+            self, greeting: str, identifier: str,
+            name: str, *, avatar_rel_path: str = '',
+            base_img_prompt: str = '', categories: list = [],
+            copyable: bool = True, definition: str = '',
+            description: str = '', title: str = '',
+            img_gen_enabled: bool = False,
+            visibility: str = 'PUBLIC', wait: bool = False,
+            token: str = None, **kwargs
         ):
-            return await GetResponse(
-                'chat/characters/trending/', 
+            return await _PostResponse(
+                post_link='../chat/character/create/',
+                data={
+                    'greeting': greeting,
+                    'identifier': identifier,
+                    'name': name,
+                    'avatar_rel_path': avatar_rel_path,
+                    'base_img_prompt': base_img_prompt,
+                    'categories': categories,
+                    'copyable': copyable,
+                    'definition': definition,
+                    'description': description,
+                    'img_gen_enabled': img_gen_enabled,
+                    'title': title,
+                    'visibility': visibility,
+                    **kwargs
+                },
                 wait=wait, token=token
+            )
+
+        async def update(
+            self, external_id: str, greeting: str,
+            identifier: str, name: str, title: str = '',
+            categories: list = [], definition: str = '',
+            copyable: bool = True, description: str = '',
+            visibility: str = 'PUBLIC', *,
+            wait: bool = False, token: str = None, **kwargs
+        ):
+            return await _PostResponse(
+                post_link='../chat/character/update/',
+                data={
+                    'external_id': external_id,
+                    'name': name,
+                    'categories': categories,
+                    'title': title,
+                    'visibility': visibility,
+                    'copyable': copyable,
+                    'description': description,
+                    'greeting': greeting,
+                    'definition': definition,
+                    **kwargs
+                },
+                wait=wait, token=token
+            )
+        
+        async def trending(self, *, wait: bool = False):
+            return await _GetResponse(
+                'chat/characters/trending/', wait=wait
             )
 
         async def recommended(
             self, *, wait: bool = False,
             token: str = None
         ):
-            return await GetResponse(
+            return await _GetResponse(
                 'chat/characters/recommended/', 
                 wait=wait, token=token
             )
 
         async def categories(
-            self, *, wait: bool = False,
-            token: str = None
+            self, *, wait: bool = False
         ):
-            return await GetResponse(
+            return await _GetResponse(
                 'chat/character/categories/', 
-                wait=wait, token=token
+                wait=wait
             )
 
         async def info(
-            self, char: str, *, 
-            wait: bool = False, token: str = None
+            self, char: str, *, wait: bool = False
         ):
-            return await GetResponse(
+            return await _GetResponse(
                 f'chat/character/info-cached/{char}/', 
-                wait=wait, token=token
+                wait=wait
             )
 
         async def search(
-            self, query: str, *,
-            wait: bool = False, token: str = None
+            self, query: str, *, wait: bool = False
         ):
-            return await GetResponse(
+            return await _GetResponse(
                 f'chat/characters/search/?query={query}/', 
-                wait=wait, token=token
+                wait=wait
+            )
+
+        async def voices(
+            self, *, wait: bool = False
+        ):
+            return await _GetResponse(
+                'chat/character/voices/', wait=wait
             )
 
     class chat:
-        async def rate(
-            self, char: str, rate: int, *,
-            message_uuid: str = None,
-            wait: bool = False, token: str = None
+        """Managing a chat with a character
+        
+        chat.create_room('CHARACTERS', 'NAME', 'TOPIC')
+        chat.rate(NUM, 'HISTORY_ID', 'MESSAGE_ID')
+        chat.next_message('CHAR', 'MESSAGE')
+        chat.get_histories('CHAR')
+        chat.get_history('HISTORY_EXTERNAL_ID')
+        chat.get_chat('CHAR')
+        chat.send_message('CHAR', 'MESSAGE')
+        chat.delete_message('HISTORY_ID', 'UUIDS_TO_DELETE')
+        chat.new_chat('CHAR')
+
+        """
+        async def create_room(
+            self, characters: list, name: str,
+            topic: str = '', *, wait: bool = False,
+            token: str = None, **kwargs
         ):
-            """Rate message, return json
+            return await _PostResponse(
+                post_link='../chat/room/create/',
+                data={
+                    'characters': characters,
+                    'name': name,
+                    'topic': topic,
+                    'visibility': 'PRIVATE',
+                    **kwargs
+                },
+                wait=wait, token=token
+            )
 
-            chat.rate('CHAR', NUM)
-            
-            """
-            async with page.expect_response(
-                lambda response: response.url.startswith(
-                    'https://beta.character.ai/chat/history/msgs/user/'
-                )
-            ) as response_info:
-                await goto(f'chat?char={char}', wait=wait, token=token)
-
+        async def rate(
+            self, rate: int, history_id: str,
+            message_id: str, *, wait: bool = False,
+            token: str = None, **kwargs
+        ):
             if rate == 0: label = [234, 238, 241, 244] #Terrible
             elif rate == 1: label = [235, 237, 241, 244] #Bad
             elif rate == 2: label = [235, 238, 240, 244] #Good
             elif rate == 3: label = [235, 238, 241, 243] #Fantastic
             else: raise errors.LabelError('Wrong Rate Value')
 
-            history_data = await response_info.value
-
-            history = await history_data.json()
-            history_external_id = history_data.url.split('=')[-1]
-
-            response = await PostResponse(
-                link=f'chat?char={char}',
+            return await _PostResponse(
                 post_link='chat/annotations/label/',
                 data={
-                    "message_uuid": history['messages'][-1]['uuid'],
-                    "history_external_id": history_external_id,
-                    "label_ids": label
+                    'label_ids': label,
+                    'history_external_id': history_id,
+                    'message_uuid': message_id,
+                    **kwargs
                 },
-                wait=wait, json=False, token=token, method='PUT'
+                wait=wait, send_json=False,
+                token=token, method='PUT'
             )
-
-            return response
 
         async def next_message(
-            self, char: str, *, wait: bool = False,
-            token: str = None, filtering: bool = True
+            self, history_id: str, parent_msg_uuid: str,
+            tgt: str, *, wait: bool = False,
+            token: str = None, **kwargs
         ):
-            """Next message, return json
-
-            chat.next_message('CHAR', 'MESSAGE')
-            
-            # """
-            # await goto(f'chat?char={char}', wait=wait, token=token)
-
-            async with page.expect_response(
-                lambda response: response.url.startswith(
-                    'https://beta.character.ai/chat/history/msgs/user/'
-                )
-            ) as response_info:
-                await goto(f'chat?char={char}', wait=wait, token=token)
-            
-            history = await (await response_info.value).json()
-            url = (await response_info.value).url
-
-            #Get last user message for uuid and text
-            for h in history['messages']:
-                if h['src__is_human'] == True:
-                    last_message = h
-
-            response = await PostResponse(
-                link=f'chat?char={char}',
+            response = await _PostResponse(
                 post_link='chat/streaming/',
                 data={
-                    "character_external_id": char,
-                    "history_external_id": url.split('=')[-1],
-                    "text": last_message['text'],
-                    "tgt": history['messages'][-1]['src__user__username'],
-                    "parent_msg_uuid": last_message['uuid']
+                    "history_external_id": history_id,
+                    "parent_msg_uuid": parent_msg_uuid,
+                    "tgt": tgt,
+                    **kwargs
                 },
-                wait=wait, json=False, token=token
+                wait=wait, send_json=False, token=token
             )
 
-            if response.split('\n')[-1].startswith('{"abort"'):
-                if filtering:
-                    raise errors.FilterError('No eligible candidates')
-                else:
-                    return json.loads(response.split('\n')[-3])
+            if response.split('\n')[-2].startswith('{"abort"'):
+                raise errors.FilterError('No eligible candidates')
             else:
                 return json.loads(response.split('\n')[-2])
 
         async def get_histories(
             self, char: str, *,
+            number: int = 50,
             wait: bool = False, token: str = None
         ):
-            """Getting all character chat histories
-
-            chat.get_histories('CHAR')
-            
-            """
-            return await PostResponse(
-                link=f'chat?char={char}',
-                post_link='chat/character/histories/',
-                data={"external_id": char, "number": 50},
-                wait=wait,
-                token=token
+            return await _PostResponse(
+                post_link='chat/character/histories_v2/',
+                data={"external_id": char, "number": number},
+                wait=wait, token=token
             )
 
         async def get_history(
-            self, char: str = None, *,
+            self, history_id: str = None, *,
             wait: bool = False, token: str = None
         ):
-            """Getting character chat history
-
-            chat.get_history('HISTORY_EXTERNAL_ID')
-            
-            """
-            try:
-                return await GetResponse(
-                    f'chat/history/msgs/user/?history_external_id={char}',
-                    wait=wait, token=token
-                )
-            except:
-                char_data = await PostResponse(
-                    link=f'chat?char={char}',
-                    post_link='chat/history/continue/',
-                    data={"character_external_id": char},
-                    wait=wait,
-                    token=token
-                )
-
-                history_id = char_data['external_id']
-
-                return await GetResponse(
-                    f'chat/history/msgs/user/?history_external_id={history_id}',
-                    wait=wait, token=token
-                )
+            return await _GetResponse(
+                f'chat/history/msgs/user/?history_external_id={history_id}',
+                wait=wait, token=token
+            )
 
         async def get_chat(
             self, char: str = None, *,
-            wait: bool = False, token: str = None
+            wait: bool = False, token: str = None,
+            **kwargs
         ):
-            """Getting the main information about the chat
-
-            chat.get_chat('CHAR')
-            
-            """
-            return await PostResponse(
-                link=f'chat?char={char}',
+            return await _PostResponse(
                 post_link='chat/history/continue/',
-                data={"character_external_id": char},
-                wait=wait,
-                token=token
+                data={
+                    'character_external_id': char,
+                    **kwargs
+                },
+                wait=wait, token=token
             )
 
         async def send_message(
-            self, char: str, message: str, *,
-            history_external_id: str = None,
-            tgt: str = None, wait: bool = False,
-            token: str = None, filtering: bool = True
+            self, history_id: str, tgt: str, text: str, *,
+            wait: bool = False, token: str = None,
+            **kwargs
         ):
-            """Sending a message, return json
-
-            chat.send_message('CHAR', 'MESSAGE')
-            
-            """
-            # Get history_external_id and tgt
-            if history_external_id == None or tgt == None:
-                print('none')
-                info = await PostResponse(
-                    link=f'chat?char={char}',
-                    post_link='chat/history/continue/',
-                    data={'character_external_id': char},
-                    wait=wait,
-                    token=token
-                )
-
-                if history_external_id == None:
-                    history_external_id = info['external_id']
-                    
-                if tgt == None:
-                    # In the list of "participants",
-                    # a character can be at zero or in the first place
-                    if not info['participants'][0]['is_human']:
-                        tgt = info['participants'][0]['user']['username']
-                    else:
-                        tgt = info['participants'][1]['user']['username']
-
-            response = await PostResponse(
-                link=f'chat?char={char}',
+            response = await _PostResponse(
                 post_link='chat/streaming/',
                 data={
-                    "history_external_id": history_external_id,
-                    "character_external_id": char,
-                    "text": message,
-                    "tgt": tgt
+                    'history_external_id': history_id,
+                    'tgt': tgt,
+                    'text': text,
+                    **kwargs
                 },
-                wait=wait,
-                json=False,
-                token=token
+                wait=wait, send_json=False, token=token
             )
-            
-            if response.split('\n')[-1].startswith('{"abort"'):
-                if filtering:
-                    raise errors.FilterError('No eligible candidates')
-                else:
-                    return json.loads(response.split('\n')[-3])
+
+            if response.split('\n')[-2].startswith('{"abort"'):
+                raise errors.FilterError('No eligible candidates')
             else:
                 return json.loads(response.split('\n')[-2])
 
         async def delete_message(
-            self, history_id: str, uuids_to_delete: list, *,
-            wait: bool = False, token: str = None
+            self, history_id: str, uuids_to_delete: list,
+            *, wait: bool = False, token: str = None, **kwargs
         ):
-            """Delete a message
-
-            chat.new_chat('HISTORY_ID')
-            
-            """
-            return await PostResponse(
-                link='chat',
+            return await _PostResponse(
                 post_link='chat/history/msgs/delete/',
                 data={
-                    "history_id": history_id,
-                    "uuids_to_delete": uuids_to_delete
+                    'history_id': history_id,
+                    'uuids_to_delete': uuids_to_delete,
+                    **kwargs
                 },
-                wait=wait,
-                token=token
+                wait=wait, token=token
             )
 
         async def new_chat(
             self, char: str, *,
             wait: bool = False, token: str = None
         ):
-            """Starting new chat, return new chat history
-
-            chat.new_chat('CHAR')
-            
-            """
-            return await PostResponse(
-                link=f'chat?char={char}',
+            return await _PostResponse(
                 post_link='chat/history/create/',
                 data={'character_external_id': char},
-                wait=wait,
-                token=token
+                wait=wait, token=token
             )
