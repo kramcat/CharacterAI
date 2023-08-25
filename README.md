@@ -7,7 +7,7 @@ An unofficial API for Character AI for Python using Playwright
 ### Discord Server
 If you have any questions/problems/suggestions or you just want to talk about AI and CharacterAI - welcome to my new Discord server
 
-[**discord.gg/CZdQWzMV**](https://discord.gg/CZdQWzMV)
+[**discord.gg/ZHJe3tXQkf**](https://discord.gg/ZHJe3tXQkf)
 
  ᅠ 
 
