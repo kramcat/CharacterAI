@@ -560,7 +560,7 @@ class PyAsyncCAI:
             )
 
         async def get_chat(
-            self, char: str = None, *,
+            self, char: str = None, history_id: str = None, *,
             wait: bool = False, token: str = None,
             **kwargs
         ):
@@ -568,6 +568,7 @@ class PyAsyncCAI:
                 post_link='chat/history/continue/',
                 data={
                     'character_external_id': char,
+                    'history_external_id': history_id,
                     **kwargs
                 },
                 wait=wait, token=token
