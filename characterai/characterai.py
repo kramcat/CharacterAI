@@ -1,146 +1,91 @@
+from contextlib import contextmanager
+import tls_client
 import json
-
-from playwright.sync_api import sync_playwright, \
-    TimeoutError as PlaywrightTimeoutError
 
 from characterai import errors
 from characterai.pyasynccai import PyAsyncCAI
 
-_page = None
-
 __all__ = ['PyCAI', 'PyAsyncCAI']
 
-def _goto(link: str, *, wait: bool = False, token: str = None):
-    if token != None:
-        _page.set_extra_http_headers(
-            {"Authorization": f"Token {token}"}
-        )
-
-    try:
-        _page.goto(link)
-    except Exception as E:
-        raise errors.UnknownError(E)
-
-    content = _page.locator('body').inner_text()
-
-    if content.startswith('Not Found'):
-        raise errors.NotFoundError(content.split('\n')[-1])
-    elif content == 'No history found for id provided.':
-        raise errors.NotFoundError(content)
-    elif content.startswith('{"error":'):
-        raise errors.ServerError(json.loads(content)['error']) 
-    elif content.startswith('{"detail":'):
-        raise errors.AuthError(json.loads(content)['detail']) 
-
-    if _page.title() != 'Waiting Room powered by Cloudflare':
-        return _page
-    else:
-        if wait:
-            _page.wait_for_selector(
-                'div#wrapper', state='detached', timeout=0
-            )
-            _goto(link=link, wait=wait, token=token)
-        else:
-            raise errors.NoResponse('The Site is Overloaded')
-
-def _GetResponse(
-        link: str, *, wait: bool = False,
-        token: str = None
-    ):
-    _goto(link, wait=wait, token=token)
-    return json.loads(_page.locator('body').inner_text())
-
-def _PostResponse(
-        post_link: str, data: str, *,
-        send_json: bool = True, method: str = 'POST',
-        wait: bool = False, token: str = None
-    ):
-    _goto('', wait=wait, token=token)
-
-    headers = {
-        'Authorization': f'Token {token}',
-        'Content-Type': 'application/json'
-    }
-
-    data = json.dumps(data)
-    
-    with _page.expect_response(post_link) as response_info:
-        _page.evaluate(
-            "fetch('"
-            + post_link + "', {method: '"
-            + method + "',body: JSON.stringify("
-            + data + "),headers: new Headers("
-            + str(headers) + "),})"
-        )
-
-    response = response_info.value
-
-    if response.status != 200:
-        raise errors.ServerError(response.status_text) 
-
-    if send_json: return response.json()
-    else: return response.text()
-
 class PyCAI:
-    def __init__(self, token: str = None):
+    def __init__(
+        self, token: str = None, plus: bool = False
+    ):
         self.token = token
 
-        self.user = self.user()
-        self.post = self.post()
-        self.character = self.character()
-        self.chat = self.chat()
+        if plus: sub = 'plus'
+        else: sub = 'beta'
 
-    def start(
-        self, *, headless: bool = True,
-        plus: bool = False, timeout: int = 0
-    ):
-        global _page
-
-        if plus: url = 'https://plus.character.ai'
-        else: url = 'https://beta.character.ai'
-
-        self.playwright = sync_playwright().start()
-        self.browser = self.playwright.firefox.launch(
-            headless=headless)
-        self.context = self.browser.new_context(
-            extra_http_headers={"Authorization": f"Token {self.token}"},
-            base_url=url
+        self.session = tls_client.Session(
+            client_identifier='chrome112'
         )
-        _page = self.context.new_page()
-        _page.set_default_timeout(timeout)
+
+        setattr(self.session, 'url', f'https://{sub}.character.ai/')
+        setattr(self.session, 'token', token)
+
+        self.user = self.user(token, self.session)
+        self.post = self.post(token, self.session)
+        self.character = self.character(token, self.session)
+        self.chat = self.chat(token, self.session)
+
+    def request(
+        url: str, session: tls_client.Session,
+        *, token: str = None, method: str = 'GET',
+        data: dict = None, split: bool = False,
+        neo: bool = False
+    ):
+        if neo:
+            link = f'https://neo.character.ai/{url}'
+        else:
+            link = f'{session.url}{url}'
+
+        if token == None:
+            key = session.token
+        else:
+            key = token
+
+        headers = {
+            'Authorization': f'Token {key}'
+        }
+
+        if method == 'GET':
+            response = session.get(
+                link, headers=headers
+            )
+
+        elif method == 'POST':
+            response = session.post(
+                link, headers=headers, json=data
+            )
+
+        elif method == 'PUT':
+            response = session.put(
+                link, headers=headers, json=data
+            )
+
+        if split:
+            data = json.loads(response.text.split('\n')[-2])
+        else:
+            data = response.json()
+
+        if str(data).startswith("{'command': 'neo_error'"):
+            raise errors.ServerError(data['comment'])
+        elif str(data).startswith("{'detail': 'Auth"):
+            raise errors.AuthError('Invalid token')
+        elif str(data).startswith("{'status': 'Error"):
+            raise errors.ServerError(data['status'])
+        elif str(data).startswith("{'error'"):
+            raise errors.ServerError(data['error'])
+        else:
+            return data
 
     def ping(self):
-        _page.goto('https://neo.character.ai/ping/')
-        return json.loads((_page.locator('body').inner_text()))
-
-    def upload_image(
-        self, path, *, wait: bool = False
-    ):
-        _page.goto('chat')
-
-        close1 = _page.locator('//*[@id="mobile-app-modal-close"]')
-        close2 = _page.locator('//*[@id="#AcceptButton"]')
-
-        if close1.is_visible(): close1.click()
-        if close2.is_visible(): close2.click()
-
-        _page.click("div.col-auto.ps-2.dropdown.dropup")
-        _page.get_by_text("🖼").click()
-
-        with _page.expect_response(
-            'chat/upload-image/'
-        ) as response_info:
-            with _page.expect_file_chooser() as file_info:
-                _page.click("[name='img']")
-
-            file_chooser = file_info.value
-            file_chooser.set_files(path)
-
-        response = response_info.value
-        return response.json()
+        return self.session.get(
+            'https://neo.character.ai/ping/'
+        ).json()
 
     class user:
-        """Just a responses from site for user info
+        """Responses from site for user info
 
         user.info()
         user.get_profile('USERNAME')
@@ -149,54 +94,66 @@ class PyCAI:
         user.update('USERNAME')
 
         """
-        def info(
-            self, *, wait: bool = False, token: str = None
+        def __init__(
+            self, token: str, session: tls_client.Session
         ):
-            return _GetResponse('chat/user/', wait=wait, token=token)
+            self.token = token
+            self.session = session
+
+        def info(self, *, token: str = None):
+            return PyCAI.request(
+                'chat/user/', self.session, token=token
+            )
 
         def get_profile(
             self, username: str, *,
-            wait: bool = False
+            token: str = None
         ):
-            return _PostResponse(
-                post_link='chat/user/public/',
-                data={'username': username},
-                wait=wait
+            return PyCAI.request(
+                'chat/user/public/', self.session,
+                token=token, method='POST',
+                data={
+                    'username': username
+                }
             )
 
-        def followers(self, *, wait: bool = False, token: str = None):
-            return _GetResponse(
-                'chat/user/followers/', wait=wait, token=token
+        def followers(self, *, token: str = None):
+            return PyCAI.request(
+                'chat/user/followers/', self.session, token=token
             )
 
-        def following(self, *, wait: bool = False, token: str = None):
-            return _GetResponse(
-                'chat/user/following/',
-                wait=wait, token=token
+        def following(self, *, token: str = None):
+            return PyCAI.request(
+                'chat/user/following/', self.session, token=token
             )
         
-        def recent(self, *, wait: bool = False, token: str = None):
-            return _GetResponse(
-                'chat/characters/recent/',
-                wait=wait, token=token
+        def recent(self, *, token: str = None):
+            return PyCAI.request(
+                'chat/characters/recent/', self.session, token=token
+            )
+
+        def characters(self, *, token: str = None):
+            return PyCAI.request(
+                'chat/characters/?scope=user',
+                self.session, token=token
             )
 
         def update(
-            self, username: str, *,
-            wait: bool = False, token: str = None,
+            self, username: str,
+            *, token: str = None,
             **kwargs
         ):
-            return _PostResponse(
-                post_link='chat/user/update/',
+            return PyCAI.request(
+                'chat/user/update/', self.session,
+                token=token, method='POST',
                 data={
                     'username': username,
                     **kwargs
-                },
-                wait=wait, token=token
+                }
             )
-    
+
     class post:
-        """Just a responses from site for posts        
+        """Just a responses from site for posts
         
         post.get_post('POST_ID')
         post.my_posts()
@@ -209,92 +166,94 @@ class PyCAI:
         post.delete('POST_ID')
 
         """
+        def __init__(
+            self, token: str, session: tls_client.Session
+        ):
+            self.token = token
+            self.session = session
+
         def get_post(
-            self, post_id: str, *,
-            wait: bool = False
+            self, post_id: str
         ):
-            return _GetResponse(
+            return PyCAI.request(
                 f'chat/post/?post={post_id}',
-                wait=wait
+                self.session
             )
-        
-        def my_posts(
+
+        def my(
             self, *, posts_page: int = 1,
-            posts_to_load: int = 5, wait: bool = False,
-            token: str = None
+            posts_to_load: int = 5, token: str = None
         ):
-            return _GetResponse(
+            return PyCAI.request(
                 f'chat/posts/user/?scope=user&page={posts_page}'
                 f'&posts_to_load={posts_to_load}/',
-                wait=wait, token=token
+                self.session
             )
 
         def get_posts(
             self, username: str, *,
             posts_page: int = 1, posts_to_load: int = 5,
-            wait: bool = False
         ):
-            return _GetResponse(
+            return PyCAI.request(
                 f'chat/posts/user/?username={username}'
                 f'&page={posts_page}&posts_to_load={posts_to_load}/',
-                wait=wait
+                self.session
             )
 
         def upvote(
-            self, post_external_id: str, *,
-            wait: bool = False, token: str = None
+            self, post_external_id: str,
+            *, token: str = None
         ):
-            return _PostResponse(
-                post_link='chat/post/upvote/',
+            return PyCAI.request(
+                'chat/post/upvote/', self.session,
+                token=token, method='POST',
                 data={
                     'post_external_id': post_external_id
-                },
-                wait=wait, token=token
+                }
             )
 
         def undo_upvote(
-            self, post_external_id: str, *,
-            wait: bool = False, token: str = None
+            self, post_external_id: str,
+            *, token: str = None
         ):
-            return _PostResponse(
-                post_link='chat/post/undo-upvote/',
+            return PyCAI.request(
+                'chat/post/undo-upvote/', self.session,
+                token=token, method='POST',
                 data={
                     'post_external_id': post_external_id
-                },
-                wait=wait, token=token
+                }
             )
 
         def send_comment(
             self, post_id: str, text: str, *,
-            parent_uuid: str = None, wait: bool = False,
-            token: str = None
+            parent_uuid: str = None, token: str = None
         ):
-            return _PostResponse(
-                post_link='chat/comment/create/',
+            return PyCAI.request(
+                'chat/comment/create/', self.session,
+                token=token, method='POST',
                 data={
                     'post_external_id': post_id,
                     'text': text,
                     'parent_uuid': parent_uuid
-                },
-                wait=wait, token=token
+                }
             )
 
         def delete_comment(
-            self, message_id: int, post_id: str, *,
-            wait: bool = False, token: str = None
+            self, message_id: int, post_id: str,
+            *, token: str = None
         ):
-            return _PostResponse(
-                post_link='chat/comment/delete/',
+            return PyCAI.request(
+                'chat/comment/delete/', self.session,
+                token=token, method='POST',
                 data={
                     'external_id': message_id,
                     'post_external_id': post_id
-                },
-                wait=wait, token=token
+                }
             )
 
         def create(
             self, post_type: str, external_id: str,
-            title: str, text: str = '', wait: bool = False,
+            title: str, text: str = '',
             post_visibility: str = 'PUBLIC',
             token: str = None, **kwargs
         ):
@@ -315,40 +274,39 @@ class PyCAI:
                     **kwargs
                 }
             else:
-                raise errors.PostTypeError('Wrong post_type')
+                raise errors.PostTypeError('Invalid post_type')
 
-            return _PostResponse(
-                post_link=post_link,
-                data=data, wait=wait, token=token
+            return PyCAI.request(
+                post_link, self.session,
+                token=token, method='POST'
             )
 
         def delete(
             self, post_id: str, *,
-            wait: bool = False, token: str = None
+            token: str = None
         ):
-            return _PostResponse(
-                post_link='chat/post/delete/',
-                data={'external_id': post_id},
-                wait=wait, token=token
+            return PyCAI.request(
+                'chat/post/delete/', self.session,
+                token=token, method='POST',
+                data={
+                    'external_id': post_id
+                }
             )
 
-        def get_topics(
-            self, *, wait: bool = False
-        ):
-            return _GetResponse(
-                'chat/topics/',
-                wait=wait, token=token
+        def get_topics(self):
+            return PyCAI.request(
+                'chat/topics/', self.session
             )
 
         def feed(
-            self, topic: str, num_page: int = 1, 
-            posts_to_load: int = 5, sort: str = 'top', *,
-            wait: bool = False, token: str = None
+            self, topic: str, num: int = 1, 
+            load: int = 5, sort: str = 'top', *,
+            token: str = None
         ):
-            return _GetResponse(
-                f'posts/?topic={topic}&page={num_page}'
-                f'&posts_to_load={posts_to_load}&sort={sort}',
-                wait=wait, token=token
+            return PyCAI.request(
+                f'chat/posts/?topic={topic}&page={num}'
+                f'&posts_to_load={load}&sort={sort}',
+                self.session, token=token
             )
 
     class character:
@@ -364,6 +322,12 @@ class PyCAI:
         character.voices()
 
         """
+        def __init__(
+            self, token: str, session: tls_client.Session
+        ):
+            self.token = token
+            self.session = session
+
         def create(
             self, greeting: str, identifier: str,
             name: str, *, avatar_rel_path: str = '',
@@ -371,11 +335,12 @@ class PyCAI:
             copyable: bool = True, definition: str = '',
             description: str = '', title: str = '',
             img_gen_enabled: bool = False,
-            visibility: str = 'PUBLIC', wait: bool = False,
+            visibility: str = 'PUBLIC',
             token: str = None, **kwargs
         ):
-            return _PostResponse(
-                post_link='../chat/character/create/',
+            return PyCAI.request(
+                '../chat/character/create/', self.session,
+                token=token, method='POST',
                 data={
                     'greeting': greeting,
                     'identifier': identifier,
@@ -390,8 +355,7 @@ class PyCAI:
                     'title': title,
                     'visibility': visibility,
                     **kwargs
-                },
-                wait=wait, token=token
+                }
             )
 
         def update(
@@ -400,10 +364,11 @@ class PyCAI:
             categories: list = [], definition: str = '',
             copyable: bool = True, description: str = '',
             visibility: str = 'PUBLIC', *,
-            wait: bool = False, token: str = None, **kwargs
+            token: str = None, **kwargs
         ):
-            return _PostResponse(
-                post_link='../chat/character/update/',
+            return PyCAI.request(
+                '../chat/character/update/', self.session,
+                token=token, method='POST',
                 data={
                     'external_id': external_id,
                     'name': name,
@@ -415,58 +380,59 @@ class PyCAI:
                     'greeting': greeting,
                     'definition': definition,
                     **kwargs
-                },
-                wait=wait, token=token
+                }
             )
         
-        def trending(self, *, wait: bool = False):
-            return _GetResponse(
-                'chat/characters/trending/', wait=wait
+        def trending(self):
+            return PyCAI.request(
+                'chat/characters/trending/',
+                self.session
             )
 
         def recommended(
-            self, *, wait: bool = False,
-            token: str = None
+            self, *, token: str = None
         ):
-            return _GetResponse(
-                'chat/characters/recommended/', 
-                wait=wait, token=token
+            return PyCAI.request(
+                'chat/characters/recommended/',
+                self.session, token=token
             )
 
-        def categories(
-            self, *, wait: bool = False
-        ):
-            return _GetResponse(
-                'chat/character/categories/', 
-                wait=wait
+        def categories(self):
+            return PyCAI.request(
+                'chat/character/categories/',
+                self.session
             )
 
         def info(
-            self, char: str, *, wait: bool = False
+            self, char: str, *,
+            token: str = None,
         ):
-            return _GetResponse(
-                f'chat/character/info-cached/{char}/', 
-                wait=wait
+            return PyCAI.request(
+                'chat/character/', self.session,
+                token=token, method='POST',
+                data={
+                    'external_id': char
+                }
             )
 
         def search(
-            self, query: str, *, wait: bool = False
+            self, query: str, *,
+            token: str = None
         ):
-            return _GetResponse(
-                f'chat/characters/search/?query={query}/', 
-                wait=wait
+            return PyCAI.request(
+                f'chat/characters/search/?query={query}/',
+                self.session, token=token
             )
 
-        def voices(
-            self, *, wait: bool = False
-        ):
-            return _GetResponse(
-                'chat/character/voices/', wait=wait
+        def voices(self):
+            return PyCAI.request(
+                'chat/character/voices/',
+                self.session
             )
 
     class chat:
         """Managing a chat with a character
-        
+
         chat.create_room('CHARACTERS', 'NAME', 'TOPIC')
         chat.rate(NUM, 'HISTORY_ID', 'MESSAGE_ID')
         chat.next_message('CHAR', 'MESSAGE')
@@ -478,27 +444,33 @@ class PyCAI:
         chat.new_chat('CHAR')
 
         """
+        def __init__(
+            self, token: str, session: tls_client.Session
+        ):
+            self.token = token
+            self.session = session
+
         def create_room(
             self, characters: list, name: str,
-            topic: str = '', *, wait: bool = False,
-            token: str = None, **kwargs
+            topic: str = '', *, token: str = None,
+            **kwargs
         ):
-            return _PostResponse(
-                post_link='../chat/room/create/',
+            return PyCAI.request(
+                '../chat/room/create/', self.session,
+                token=token, method='POST',
                 data={
                     'characters': characters,
                     'name': name,
                     'topic': topic,
                     'visibility': 'PRIVATE',
                     **kwargs
-                },
-                wait=wait, token=token
+                }
             )
 
         def rate(
             self, rate: int, history_id: str,
-            message_id: str, *, wait: bool = False,
-            token: str = None, **kwargs
+            message_id: str, *, token: str = None,
+            **kwargs
         ):
             if rate == 0: label = [234, 238, 241, 244] #Terrible
             elif rate == 1: label = [235, 237, 241, 244] #Bad
@@ -506,114 +478,101 @@ class PyCAI:
             elif rate == 3: label = [235, 238, 241, 243] #Fantastic
             else: raise errors.LabelError('Wrong Rate Value')
 
-            return _PostResponse(
-                post_link='chat/annotations/label/',
+            return PyCAI.request(
+                'chat/annotations/label/', self.session,
+                token=token, method='PUT',
                 data={
                     'label_ids': label,
                     'history_external_id': history_id,
                     'message_uuid': message_id,
                     **kwargs
-                },
-                wait=wait, send_json=False,
-                token=token, method='PUT'
+                }
             )
 
         def next_message(
             self, history_id: str, parent_msg_uuid: str,
-            tgt: str, *, wait: bool = False,
-            token: str = None, **kwargs
+            tgt: str, *, token: str = None, **kwargs
         ):
-            response = _PostResponse(
-                post_link='chat/streaming/',
+            response = PyCAI.request(
+                'chat/streaming/', self.session,
+                token=token, method='POST', split=True,
                 data={
-                    "history_external_id": history_id,
-                    "parent_msg_uuid": parent_msg_uuid,
-                    "tgt": tgt,
+                    'history_external_id': history_id,
+                    'parent_msg_uuid': parent_msg_uuid,
+                    'tgt': tgt,
                     **kwargs
-                },
-                wait=wait, send_json=False, token=token
+                }
             )
 
-            if response.split('\n')[-2].startswith('{"abort"'):
-                raise errors.FilterError('No eligible candidates')
-            else:
-                return json.loads(response.split('\n')[-2])
-
         def get_histories(
-            self, char: str, *,
-            number: int = 50,
-            wait: bool = False, token: str = None
+            self, char: str, *, number: int = 50,
+            token: str = None
         ):
-            return _PostResponse(
-                post_link='chat/character/histories_v2/',
-                data={"external_id": char, "number": number},
-                wait=wait, token=token
+            return PyCAI.request(
+                'chat/character/histories_v2/', self.session,
+                token=token, method='POST',
+                data={'external_id': char, 'number': number},
             )
 
         def get_history(
-            self, history_id: str = None, *,
-            wait: bool = False, token: str = None
+            self, history_id: str = None,
+            *, token: str = None
         ):
-            return _GetResponse(
-                f'chat/history/msgs/user/?history_external_id={history_id}',
-                wait=wait, token=token
+            return PyCAI.request(
+                'chat/history/msgs/user/?'
+                f'history_external_id={history_id}',
+                self.session, token=token
             )
 
         def get_chat(
             self, char: str = None, *,
-            wait: bool = False, token: str = None,
-            **kwargs
+            token: str = None, **kwargs
         ):
-            return _PostResponse(
-                post_link='chat/history/continue/',
+            return PyCAI.request(
+                'chat/history/continue/', self.session,
+                token=token, method='POST',
                 data={
                     'character_external_id': char,
                     **kwargs
-                },
-                wait=wait, token=token
+                }
             )
 
         def send_message(
-            self, history_id: str, tgt: str, text: str, *,
-            wait: bool = False, token: str = None,
-            **kwargs
+            self, history_id: str, tgt: str, text: str,
+            *, token: str = None, **kwargs
         ):
-            response = _PostResponse(
-                post_link='chat/streaming/',
+            return PyCAI.request(
+                'chat/streaming/', self.session,
+                token=token, method='POST', split=True,
                 data={
                     'history_external_id': history_id,
                     'tgt': tgt,
                     'text': text,
                     **kwargs
-                },
-                wait=wait, send_json=False, token=token
+                }
             )
-
-            if response.split('\n')[-2].startswith('{"abort"'):
-                raise errors.FilterError('No eligible candidates')
-            else:
-                return json.loads(response.split('\n')[-2])
 
         def delete_message(
             self, history_id: str, uuids_to_delete: list,
-            *, wait: bool = False, token: str = None, **kwargs
+            *, token: str = None, **kwargs
         ):
-            return _PostResponse(
-                post_link='chat/history/msgs/delete/',
+            return PyCAI.request(
+                'chat/history/msgs/delete/', self.session,
+                token=token, method='POST',
                 data={
                     'history_id': history_id,
                     'uuids_to_delete': uuids_to_delete,
                     **kwargs
-                },
-                wait=wait, token=token
+                }
             )
 
         def new_chat(
-            self, char: str, *,
-            wait: bool = False, token: str = None
+            self, char: str, *, token: str = None
         ):
-            return _PostResponse(
-                post_link='chat/history/create/',
-                data={'character_external_id': char},
-                wait=wait, token=token
+            return PyCAI.request(
+                'chat/history/create/', self.session,
+                token=token, method='POST',
+                data={
+                    'character_external_id': char
+                }
             )
