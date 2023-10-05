@@ -64,7 +64,5 @@ while True:
  ᅠ 
 
 ## ⚠️ Issues
-First, you should add `headless=False` in `client.start()` and describe what happens in the browser and take screenshot of the browser
-Also, you should have a screenshot of your error and code
 Describe how to cause an error, when the error is called, how often, whether it was before, etc.
 You can write about the error in Github Issues, and you can also write to Discord server
