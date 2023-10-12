@@ -2,7 +2,7 @@
 ![Tag](https://img.shields.io/github/license/kramcat/CharacterAI)
 [![Downloads](https://static.pepy.tech/badge/characterai/month)](https://pepy.tech/project/characterai)
 
-An unofficial API for Character AI for Python using Playwright
+An unofficial API for Character AI for Python using [tls-client](https://github.com/FlorianREGAZ/Python-Tls-Client)
 
 ### Discord Server
 If you have any questions/problems/suggestions or you just want to talk about AI and CharacterAI - welcome to my new Discord server
