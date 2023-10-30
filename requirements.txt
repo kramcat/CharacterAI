@@ -1,1 +1,2 @@
 tls-client>=0.2.2
+websockets~=12.0
