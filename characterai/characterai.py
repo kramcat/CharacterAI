@@ -1,9 +1,10 @@
+#from .pyasynccai import PyAsyncCAI
 from contextlib import contextmanager
 import tls_client
 import json
 
-from characterai import errors
-from characterai.pyasynccai import PyAsyncCAI
+import errors
+from pyasynccai import PyAsyncCAI
 
 __all__ = ['PyCAI', 'PyAsyncCAI']
 
