@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from characterai import PyCAI
-import requests
+
 #from characterai import main
 app = Flask(__name__)
 # Initialize the Character.ai client
