@@ -1,4 +1,3 @@
-
 from characterai import PyCAI
 
 client = PyCAI('a5c2f69274c87103925b32bd67ed45cff0b15957')
