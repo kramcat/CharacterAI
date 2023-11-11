@@ -19,6 +19,8 @@
 		9128D6862AFF37E10006FB22 /* GuidanceHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9128D6852AFF37E10006FB22 /* GuidanceHomeView.swift */; };
 		9128D68F2AFF3D550006FB22 /* GuidanceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9128D68E2AFF3D550006FB22 /* GuidanceViewModel.swift */; };
 		9128D6912AFF3DAA0006FB22 /* GuidanceModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9128D6902AFF3DAA0006FB22 /* GuidanceModel.swift */; };
+		917E26512AFF626A003900F1 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 917E26502AFF626A003900F1 /* LoginView.swift */; };
+		917E26532AFF628E003900F1 /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 917E26522AFF628E003900F1 /* LoginViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,6 +56,8 @@
 		9128D6852AFF37E10006FB22 /* GuidanceHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidanceHomeView.swift; sourceTree = "<group>"; };
 		9128D68E2AFF3D550006FB22 /* GuidanceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidanceViewModel.swift; sourceTree = "<group>"; };
 		9128D6902AFF3DAA0006FB22 /* GuidanceModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidanceModel.swift; sourceTree = "<group>"; };
+		917E26502AFF626A003900F1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		917E26522AFF628E003900F1 /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +149,7 @@
 			isa = PBXGroup;
 			children = (
 				9128D6852AFF37E10006FB22 /* GuidanceHomeView.swift */,
+				917E26502AFF626A003900F1 /* LoginView.swift */,
 				9128D6582AFF34110006FB22 /* ContentView.swift */,
 			);
 			name = Views;
@@ -162,6 +167,7 @@
 			isa = PBXGroup;
 			children = (
 				9128D68E2AFF3D550006FB22 /* GuidanceViewModel.swift */,
+				917E26522AFF628E003900F1 /* LoginViewModel.swift */,
 			);
 			name = ViewModel;
 			sourceTree = "<group>";
@@ -302,7 +308,9 @@
 				9128D6592AFF34110006FB22 /* ContentView.swift in Sources */,
 				9128D6572AFF34110006FB22 /* ai_parentApp.swift in Sources */,
 				9128D6912AFF3DAA0006FB22 /* GuidanceModel.swift in Sources */,
+				917E26512AFF626A003900F1 /* LoginView.swift in Sources */,
 				9128D6862AFF37E10006FB22 /* GuidanceHomeView.swift in Sources */,
+				917E26532AFF628E003900F1 /* LoginViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
