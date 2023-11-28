@@ -25,9 +25,10 @@ For a complete understanding of the library, there is [documentation](https://py
 ## 🔑 Get Token
 DO NOT SHARE IT
 The token is needed for authorization and operation of requests from your account
-1. Open DevTools in your browser
-2. Go to Storage -> Local Storage -> char_token
-3. Copy `value`
+1. Log in to https://beta.character.ai
+2. Open DevTools in your browser
+3. Go to Storage -> Local Storage -> char_token
+4. Copy `value`
 
  ᅠ 
 
