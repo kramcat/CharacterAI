@@ -47,8 +47,14 @@ class PyAsyncCAI:
             key = token
 
         headers = {
-            'Authorization': f'Token {key}'
+            'User-Agent': 'okhttp/5.0.0-SNAPSHOT',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Referer': 'https://beta.character.ai/',
+            'Authorization': f'Token {key}',
+            'Origin': 'https://beta.character.ai',
         }
+
 
         if method == 'GET':
             response = session.get(
@@ -97,7 +103,14 @@ class PyAsyncCAI:
             try:
                 self.ws = await websockets.connect(
                     'wss://neo.character.ai/ws/',
-                    extra_headers={'Cookie': f'HTTP_AUTHORIZATION="Token {key}"'}
+                    extra_headers = {
+                        'Cookie': f'HTTP_AUTHORIZATION="Token {key}"',
+                        'origin': 'https://neo.character.ai',
+                        'Upgrade': 'websocket',
+                        'Sec-WebSocket-Extensions': 'permessage-deflate',
+                        'Host': 'neo.character.ai',
+                        'User-Agent': 'okhttp/5.0.0-SNAPSHOT',
+                    }  
                 )
             except websockets.exceptions.InvalidStatusCode:
                 raise errors.AuthError('Invalid token')
