@@ -4,6 +4,9 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
+  jobs:
+    post_install:
+      - pip install sphinx-inline-tabs sphinx-copybutton
 
 sphinx:
   configuration: docs/conf.py
