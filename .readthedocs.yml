@@ -9,6 +9,6 @@ build:
       - pip install sphinx-inline-tabs sphinx-copybutton furo sphinxcontrib-towncrier
 
 sphinx:
-  configuration: docs/source/conf.py
+  configuration: docs/conf.py
 
 formats: all
