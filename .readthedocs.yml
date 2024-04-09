@@ -6,7 +6,7 @@ build:
     python: "3.11"
   jobs:
     post_install:
-      - pip install sphinx-inline-tabs sphinx-copybutton
+      - pip install sphinx-inline-tabs sphinx-copybutton furo
 
 sphinx:
   configuration: docs/conf.py
