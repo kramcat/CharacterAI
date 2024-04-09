@@ -1,5 +1,5 @@
 import sys, os
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('../'))
 
 project = 'AioCAI'
 title = '1.0.0a1'
