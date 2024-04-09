@@ -1,6 +1,8 @@
 import sys, os
 from pathlib import Path
 
+import characterai
+
 project = 'AioCAI'
 title = '1.0.0a1'
 copyright = ' 2023 – 2024, kramcat'
