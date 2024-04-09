@@ -1,5 +1,5 @@
-import sys, os
-sys.path.insert(0, os.path.abspath('../..'))
+from pathlib import Path
+import sys
 
 project = 'AioCAI'
 title = '1.0.0a1'
@@ -63,3 +63,5 @@ html_theme_options = {
         }
     ],
 }
+
+sys.path.insert(0, str(Path(__file__).parent.parent
