@@ -1,5 +1,5 @@
 import sys, os
-sys.path.insert(0, os.path.abspath('../..'))
+from pathlib import Path
 
 project = 'AioCAI'
 title = '1.0.0a1'
@@ -13,7 +13,8 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx_copybutton',
-    'sphinx_inline_tabs'
+    'sphinx_inline_tabs',
+    'sphinxcontrib.towncrier.ext'
 ]
 
 autosummary_generate = True
@@ -63,3 +64,7 @@ html_theme_options = {
         }
     ],
 }
+
+towncrier_draft_autoversion_mode = "draft"
+towncrier_draft_include_empty = False
+towncrier_draft_working_directory = Path(__file__).parent.parent
