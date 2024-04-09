@@ -1,0 +1,139 @@
+body {
+    --color-sidebar-item-background--hover: var(--color-background-hover);
+}
+
+.sidebar-drawer {
+    background: #131316;
+}
+
+.main {
+    background: #18181B;
+}
+
+.content-icon-container {
+    display: none;
+}
+
+.toc-drawer {
+    background: #18181B;
+}
+
+.sidebar-search-container {
+    background: #131316;
+}
+
+h2 {
+    font-size: 1.5em;
+}
+
+.sidebar-tree .caption, .sidebar-tree :not(.caption)>.caption-text {
+    font-size: 0.9em;
+    font-weight: 800;
+}
+
+blockquote {
+    display: none;
+}
+
+table.docutils {
+    border-radius: 0.5em;
+    border: 1px solid var(--color-table-border);
+    width: 100%;
+}
+
+article table.align-default {
+  overflow: hidden;
+}
+
+a {
+    text-decoration: none;
+    text-decoration-color: transparent;
+}
+
+.social-icon {
+    padding-left: 8px;
+}
+
+.sidebar-brand-text {
+    display: none;
+}
+
+.sidebar-search {
+    border: none;
+    border-radius: 10px;
+    border: none;
+    background: #202024;
+    margin: 0px 8px;
+}
+
+.sidebar-search-container::before {
+    z-index: 11;
+    mask-image: url('search.svg');
+}
+
+.sidebar-scroll, .toc-scroll, article[role="main"] * {
+    scrollbar-width: none;
+}
+
+.sidebar-brand {
+    margin-right: 0px 8px;
+}
+
+.sidebar-tree .current > .reference {
+    border-radius: 20px 0px 0px 20px;
+}
+
+.sidebar-tree .reference:hover {
+    color: var(--color-sidebar-link-text--top-level);
+    border-radius: 20px 0px 0px 20px;
+}
+
+.tab-content {
+    box-shadow: none;
+}
+
+.tab-set > label {
+    padding: 1em 1em 0.5em;
+}
+
+.tab-label {
+    background: #202020;
+    border-radius: 10px 10px 0px 0px;
+}
+
+.theme-toggle {
+    display: none;
+}
+
+.tab-set > input:checked + label {
+    -webkit-tap-highlight-color: transparent;
+    color: var(--color-content-foreground);
+    background: #202020;
+}
+
+.tab-set > input:checked + label:hover {
+    color: var(--color-content-foreground);
+    background: #202020;
+}
+
+.tab-set > label {
+    padding: 0.5em 1em;
+    margin-left: 0px;
+    border-bottom: none;
+    padding: none;
+    margin-left: none;
+    background: none;
+}
+
+.tab-content > [class^="highlight-"]:first-child .highlight {
+    border-top-right-radius: 10px;
+}
+
+.highlight {
+    border-radius: 10px;
+}
+
+.mobile-header.scrolled {
+    border-bottom: 1;
+    box-shadow: none;
+}
