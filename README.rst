@@ -31,9 +31,10 @@ Welcome to the documentation for a synchronous/asynchronous unofficial library f
 
     pip install characterai==1.0.0a1
 
-.. warning::
+⚠️ Warning
+==========
 
-    This version of the library is in alpha version, there may be bugs and errors. The library was developed without the participation of Character AI developers or their knowledge. To work with the library you need to know how to work with `asyncio <https://docs.python.org/3/library/asyncio.html>`_
+This version of the library is in alpha version, there may be bugs and errors. The library was developed without the participation of Character AI developers or their knowledge. To work with the library you need to know how to work with `asyncio <https://docs.python.org/3/library/asyncio.html>`_
 
 
 🔥 Features
@@ -49,8 +50,35 @@ Welcome to the documentation for a synchronous/asynchronous unofficial library f
 
 📙 Simple Example
 -----------------
-.. literalinclude::
-    examples/async/chat2.py
+.. code-block:: python3
+
+    from characterai import aiocai
+    import asyncio
+
+    async def main():
+        char = input('CHAR ID: ')
+
+        client = aiocai.Client('TOKEN')
+
+        me = await client.get_me()
+
+        async with await client.connect() as chat:
+            new, answer = await chat.new_chat(
+                char, me.id
+            )
+
+            print(f'{answer.name}: {answer.text}')
+        
+            while True:
+                text = input('YOU: ')
+
+                message = await chat.send_message(
+                    char, new.chat_id, text
+                )
+
+                print(f'{message.name}: {message.text}')
+
+    asyncio.run(main())
 
 
 👥 Community
