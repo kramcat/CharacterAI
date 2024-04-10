@@ -104,33 +104,5 @@ If you have any questions about our library or would like to discuss CharacterAI
 | BTC - ``bc1qghtyl43jd6xr66wwtrxkpe04sglqlwgcp04yl9``
 | ETH - ``0x1489B0DDCE07C029040331e4c66F5aA94D7B4d4e``
 | USDT (TRC20) - ``TJpvALv9YiL2khFBb7xfWrUDpvL5nYFs8u``
-
-You can contact me via `Telegram <https://t.me/kramcat>`_ or `Discord <https://discordapp.com/users/480976972277874690>`_ if you need help with parsing services or want to write a library. I can also create bots and userbots for Telegram
-
-
-.. toctree::
-    :hidden:
-    :maxdepth: 3
-    :caption: Getting Started
-
-    starting
-    auth
-
-.. toctree::
-    :hidden:
-    :maxdepth: 3
-    :caption: Working with API
-
-    client
-    methods/index
-    types/index
-    errors
-
-.. toctree::
-    :hidden:
-    :maxdepth: 3
-    :caption: More Info
-
-    support
-    qna
-    changelog
+|
+| You can contact me via `Telegram <https://t.me/kramcat>`_ or `Discord <https://discordapp.com/users/480976972277874690>`_ if you need help with parsing services or want to write a library. I can also create bots and userbots for Telegram
