@@ -1,11 +1,23 @@
 from datetime import datetime
 from pydantic import BaseModel
-from typing import Any, List
+from typing import Any, List, Optional
 
 from .other import Avatar
 
 class Anonymous(BaseModel):
     username: str = 'ANONYMOUS'
+
+class Guest(BaseModel):
+    username: str
+    id: int
+    account: Optional[Any] = None 
+    is_staff: bool = False
+    subscription: Optional[int] = None
+    is_human: bool = True
+    name: str
+    email: Optional[str] = None
+    hidden_characters: list
+    blocked_users: list
 
 class Profile(BaseModel, Avatar):
     """Your account info
