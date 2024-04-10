@@ -29,7 +29,7 @@ Welcome to the documentation for a synchronous/asynchronous unofficial library f
 
 .. code-block:: bash
 
-    pip install characterai==1.0.0a1
+    pip install -U characterai
 
 ⚠️ Warning
 ==========
