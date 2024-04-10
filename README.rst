@@ -100,7 +100,7 @@ If you have any questions about our library or would like to discuss CharacterAI
 
 💵 Support
 ----------
-| TON - ``UQBlGz8aw5tWaocR8gPppQe6SgTx-kkh5keInKtEzVOqPhdY``
+| TON - ``EQCSMftGsV4iU2b9H7tuEURIwpcWpF_maw4yknMkVxDPKs6v``
 | BTC - ``bc1qghtyl43jd6xr66wwtrxkpe04sglqlwgcp04yl9``
 | ETH - ``0x1489B0DDCE07C029040331e4c66F5aA94D7B4d4e``
 | USDT (TRC20) - ``TJpvALv9YiL2khFBb7xfWrUDpvL5nYFs8u``
