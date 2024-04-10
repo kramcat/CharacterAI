@@ -1,20 +1,27 @@
 from setuptools import setup, find_packages
 
-with open('README.md', encoding='utf8') as f:
-    long_description = f.read()
+with open('README.rst', encoding='utf-8') as f:
+    readme = f.read()
 
 setup(
     name='characterai',
-    version='0.8.0',
-    author='kramcat',
-    description='An unofficial API for character.ai for Python',
-    long_description=long_description,
-    long_description_content_type='text/markdown',
+    version='1.0.0',
+    description='An unofficial API for Character AI for Python',
+    keywords='ai wrapper api library',
+    long_description=readme,
+    long_description_content_type='text/x-rst',
     url='https://github.com/kramcat/characterai',
-    packages=find_packages(),
-    install_requires=["tls-client>=0.2.2"],
+    author='kramcat',
+    license='MIT',
+    install_requires=['pydantic', 'curl_cffi', 'websockets'],
+    packages=find_packages(include=['characterai*']),
+    project_urls={
+        'Community': 'https://discord.gg/ZHJe3tXQkf',
+        'Source': 'https://github.com/kramcat/characterai',
+        'Documentation': 'https://docs.kram.cat',
+    },
     classifiers=[
-        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'License :: OSI Approved :: MIT License',
     ],
 )
