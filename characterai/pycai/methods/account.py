@@ -19,8 +19,14 @@ class Account:
             'chat/user/', token=token
         )
 
-        if data['user']['user']['username'] == 'ANONYMOUS':
+        name = data['user']['user']['username']
+        
+        if name == 'ANONYMOUS':
             return account.Anonymous()
+        elif name.startswith('Guest'):
+            return account.Guest.model_validate(
+                flatten(data)
+            )
 
         return account.Profile.model_validate(
             flatten(data)
