@@ -1,1 +1,3 @@
-tls-client>=0.2.2
+pydantic
+websockets
+curl_cffi
