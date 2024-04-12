@@ -77,8 +77,8 @@ class Profile(BaseModel, Avatar):
         blocked_users (List of ``str``):
             Blocked users
     """
-    name: str
-    avatar_type: str
+    name: Optional[str] = None
+    avatar_type: Optional[str] = None
     onboarding_complete: bool
     avatar_file_name: str | None
     mobile_onboarding_complete: int | None
