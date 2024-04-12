@@ -8,6 +8,4 @@ link = input('Enter the link: ')
 
 token = authUser(link, email)
 
-info = pycai.get_me(token=token)
-
-print(info)
+print(f'YOUR TOKEN: {token}')
