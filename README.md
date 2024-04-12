@@ -24,6 +24,7 @@ This version of the library is in alpha version, there may be bugs and errors. T
 - Asynchronous
 
 ### 📙 Simple Example
+You need an account to use the library. To find out your token, you must [log in through the library](https://docs.kram.cat/auth.html)
 ```python
 from characterai import aiocai
 import asyncio
