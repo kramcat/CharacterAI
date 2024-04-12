@@ -10,8 +10,6 @@ async def main():
 
     token = authUser(link, email)
 
-    info = await aiocai.get_me(token=token)
-
-    print(info)
+    print(f'YOUR TOKEN: {token}')
 
 asyncio.run(main())
