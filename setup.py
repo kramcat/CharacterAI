@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-with open('README.rst', encoding='utf-8') as f:
+with open('README.md', encoding='utf-8') as f:
     readme = f.read()
 
 setup(
@@ -9,7 +9,7 @@ setup(
     description='An unofficial API for Character AI for Python',
     keywords='ai wrapper api library',
     long_description=readme,
-    long_description_content_type='text/x-rst',
+    long_description_content_type='text/markdown',
     url='https://github.com/kramcat/characterai',
     author='kramcat',
     license='MIT',
