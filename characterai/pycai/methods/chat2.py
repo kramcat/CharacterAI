@@ -425,10 +425,8 @@ class WSConnect(ChatV2):
         self, token: str = None,
         *, start: bool = True
     ):
-        self.token = token
-
-        if start:
-            self._connect()
+        if not start:
+            self.token = token
 
     def __enter__(self):
         return self
@@ -454,9 +452,11 @@ class WSConnect(ChatV2):
 
     def __call__(
         self, token: str = None,
-        *, init: bool = True
+        *, start: bool = True
     ):
-        return WSConnect(token=token, init=init)
+        self.token = token or self.token
+        
+        return self._connect()
 
     def close(self):
         return self.ws.close()
