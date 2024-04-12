@@ -19,7 +19,7 @@ This code asks the user for their email address and sends them a confirmation li
     import asyncio
 
     async def main():
-        email = input('YOUR EMAL: ')
+        email = input('YOUR EMAIL: ')
 
         code = sendCode(email)
 
