@@ -50,7 +50,7 @@ Welcome to the documentation for a synchronous/asynchronous unofficial library f
 📙 Simple Example
 -----------------
 .. literalinclude::
-    ../../examples/async/chat2.py
+    ../examples/async/chat2.py
 
 
 👥 Community
