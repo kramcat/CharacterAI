@@ -126,8 +126,8 @@ def caimethod(func):
 
         result = func(*args, **kwargs)
 
-        # Закрыть сессию, если она была
-        # через обычный класс библиотеки
+        # Closing the session if the function
+        # was used through a library class
         if temp:
             args[0].close()
 
@@ -147,8 +147,6 @@ def flatten(d, parent_key='', sep=''):
             items.append((k, v))
     return dict(items)
 
-# Если ответ сервера содержит один параметр с листом,
-# ответ библиотеки будет содержать только лист
 def validate(_class, data):
     return [
         _class(**a) for a in data
