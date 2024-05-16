@@ -27,9 +27,7 @@ This code asks the user for their email address and sends them a confirmation li
         
         token = authUser(link, email)
     
-        info = await aiocai.get_me(token=token)
-
-        print(info)
+        print(f'YOUR TOKEN: {token}')
 
     asyncio.run(main())
 
