@@ -87,7 +87,7 @@ class Profile(BaseModel, Avatar):
     id: int
     first_name: str | None
     is_staff: bool
-    subscription: int | None
+    subscription: Optional[dict] = None
     is_human: bool
     email: str
     needs_to_acknowledge_policy: bool
