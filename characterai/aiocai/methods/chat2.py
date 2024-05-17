@@ -266,7 +266,7 @@ class ChatV2(Request):
         Returns:
             :obj:`~characterai.types.chat2.BotAnswer`
         """
-        chat_id = str(uuid.uuid4()) or chat_id
+        chat_id = chat_id or uuid.uuid4().hex
 
         if isinstance(creator_id, int):
             creator_id = str(creator_id)
