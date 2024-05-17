@@ -9,7 +9,7 @@ Welcome to the documentation for a synchronous/asynchronous unofficial library f
 
 ### 💻 Installation
 ```bash
-pip install -U characterai
+pip install git+https://github.com/kramcat/CharacterAI.git
 ```
 
 ### ⚠️ Warning
